@@ -17,16 +17,19 @@
 # shellcheck disable=SC1091
 source common.sh
 
-oc1 delete -n mesh1-system servicemeshpeer/mesh2
-oc2 delete -n mesh2-system servicemeshpeer/mesh1
+oc2 delete -f import/importedserviceset.yaml
+oc2 delete -f examples/destinationrule-failover.yaml
+sleep 20
 
-# Running `oc delete project` does not wait until deletion is finished,
-# even when using --wait flag, so we use `oc delete namespace`
+oc1 delete -n west-mesh-system servicemeshpeer/east-mesh
+oc2 delete -n east-mesh-system servicemeshpeer/west-mesh
 
-oc1 delete namespace mesh1-system
-oc2 delete namespace mesh2-system
-# oc1 delete namespace mesh1-exports
-# oc2 delete namespace mesh2-imports
+oc1 delete project west-mesh-system
+oc2 delete project east-mesh-system
+# oc1 delete project mesh1-exports
+# oc2 delete project mesh2-imports
 
-oc1 delete namespace mesh1-bookinfo
-oc2 delete namespace mesh2-bookinfo
+oc1 delete project bookinfo-ha
+oc2 delete project bookinfo-ha
+
+sleep 120

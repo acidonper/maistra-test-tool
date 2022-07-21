@@ -36,7 +36,7 @@ var performanceCases = []testing.InternalTest{
 	// 	F:    performance.TestNSAdditionTime,
 	// },
 	testing.InternalTest{
-		Name: "CP1",
+		Name: "CP2.1",
 		F:    performance.TestXDSSyncTime,
 	},
 }

@@ -1,7 +1,11 @@
 package performance
 
 import (
+	"crypto/tls"
+	"errors"
+	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"testing"
@@ -27,6 +31,15 @@ func TestSMMR(t *testing.T) {
 		t.Error("SMMR not Ready")
 		t.FailNow()
 	}
+}
+
+func getRouteHost(route string, namespace string) (string, error) {
+	util.Log.Debug("Getting Route Host", route, " in namespace ", namespace)
+	msg, err := util.ShellSilent(`oc get route %s -n %s --template='{{ .spec.host }}'`, route, namespace)
+	if err != nil {
+		return "", err
+	}
+	return msg, nil
 }
 
 func deleteNS(namespace string) error {
@@ -141,17 +154,70 @@ func addNamespaceMesh(namespace string) error {
 	return nil
 }
 
-func GetWithJWT(url, token, host string) (*http.Response, error) {
+func httpPostQueryAuth(url string, user string, token string) (*http.Response, error) {
 	// Declare http client
-	client := &http.Client{}
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: tr}
 
 	// Declare HTTP Method and Url
-	req, err := http.NewRequest(http.MethodGet, url, nil)
+	req, err := http.NewRequest(http.MethodPost, url, nil)
 	if err != nil {
 		return nil, err
 	}
-	req.Host = host
-	req.Header.Set("Host", req.Host)
-	req.Header.Add("Authorization", "Bearer "+token)
+	req.SetBasicAuth(user, token)
+
 	return client.Do(req)
 }
+
+func obtainMeshPrometheusToken() (string, error) {
+	token, err := util.ShellSilent(`oc get secret htpasswd -n istio-system --template='{{ .data.rawPassword }}' | base64 -d`)
+	if err != nil {
+		return "", err
+	}
+	return token, nil
+}
+
+func getMetricPrometheus(query string) (string, error) {
+	// Create Prometheus URL
+	routeHost, err := getRouteHost("prometheus", meshNamespace)
+	if err != nil {
+		return "", err
+	}
+	promUrl := "https://" + routeHost + "/api/v1/query"
+	baseUrl, err := url.Parse(promUrl)
+	if err != nil {
+		return "", err
+	}
+	values := baseUrl.Query()
+	values.Add("query", prometheusAPIMap[query])
+	baseUrl.RawQuery = values.Encode()
+
+	// Obtain token to connect to Prometheus
+	token, err := obtainMeshPrometheusToken()
+	if err != nil {
+		return "", err
+	}
+
+	// HTTP Post call to Prometheus
+	resp, err := httpPostQueryAuth(baseUrl.String(), "internal", token)
+	if err != nil {
+		return "", err
+	}
+
+	// Process HTTP response
+	if resp.StatusCode == http.StatusOK {
+		bodyBytes, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return "", err
+		}
+		bodyString := string(bodyBytes)
+		return bodyString, nil
+	} else {
+		return "", errors.New("HTTP Error " + resp.Status)
+	}
+
+}
+
+//curl -kv -u internal:$PEPE https://prometheus-istio-system.apps.meshtests.sandbox84.opentlc.com/api/v1/query --data-urlencode "query=histogram_quantile(0.99, sum(rate(pilot_proxy_convergence_time_bucket[1m])) by (le))"

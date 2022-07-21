@@ -23,16 +23,20 @@ import (
 var t = &testing.T{}
 
 var performanceCases = []testing.InternalTest{
-	testing.InternalTest{
-		Name: "A1",
-		F:    performance.TestSMCPInstalled,
-	},
-	testing.InternalTest{
-		Name: "A2",
-		F:    performance.TestSMMRInstalled,
-	},
+	// testing.InternalTest{
+	// 	Name: "A1",
+	// 	F:    performance.TestSMCPInstalled,
+	// },
+	// testing.InternalTest{
+	// 	Name: "A2",
+	// 	F:    performance.TestSMMRInstalled,
+	// },
+	// testing.InternalTest{
+	// 	Name: "CP1",
+	// 	F:    performance.TestNSAdditionTime,
+	// },
 	testing.InternalTest{
 		Name: "CP1",
-		F:    performance.TestNSAdditionTime,
+		F:    performance.TestXDSSyncTime,
 	},
 }

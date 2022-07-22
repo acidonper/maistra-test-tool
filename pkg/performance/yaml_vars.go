@@ -25,8 +25,12 @@ var (
 	nsCountBundle         string            = util.Getenv("NSCOUNTBUNDLE", "10,50,100,500")
 	nsAcceptanceTime      string            = util.Getenv("NSACCEPTANCETIME", "5")
 	xdsPushAcceptanceTime string            = util.Getenv("XDSPUSHACCEPTANCETIME", "1")
+	istiodAcceptanceMem   string            = util.Getenv("ISTIODACCEPTANCEMEM", "1024")
+	istiodAcceptanceCpu   string            = util.Getenv("ISTIODACCEPTANCECPU", "1000")
 	prometheusAPIMap      map[string]string = map[string]string{
-		"xds_ppctc": "pilot_proxy_convergence_time_count",
-		"xds_ppctb": "pilot_proxy_convergence_time_bucket{le=\"" + xdsPushAcceptanceTime + "\"}",
+		"xds_ppctc":  "pilot_proxy_convergence_time_count",
+		"xds_ppctb":  "pilot_proxy_convergence_time_bucket{le=\"" + xdsPushAcceptanceTime + "\"}",
+		"istiod_mem": "process_virtual_memory_bytes{app=\"istiod\"}",
+		"istiod_cpu": "irate(process_cpu_seconds_total{app=\"istiod\"}[1m])",
 	}
 )

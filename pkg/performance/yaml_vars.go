@@ -30,7 +30,7 @@ var (
 	prometheusAPIMap      map[string]string = map[string]string{
 		"xds_ppctc":  "pilot_proxy_convergence_time_count",
 		"xds_ppctb":  "pilot_proxy_convergence_time_bucket{le=\"" + xdsPushAcceptanceTime + "\"}",
-		"istiod_mem": "process_virtual_memory_bytes{app=\"istiod\"}",
-		"istiod_cpu": "irate(process_cpu_seconds_total{app=\"istiod\"}[1m])",
+		"istiod_mem": "sum(container_memory_working_set_bytes{pod=~\"istiod.*\",namespace=\"" + meshNamespace + "\",container=\"\",}) BY (pod)",
+		"istiod_cpu": "pod:container_cpu_usage:sum{pod=~\"istiod.*\",namespace=\"" + meshNamespace + "\"}",
 	}
 )

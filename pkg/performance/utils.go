@@ -3,6 +3,7 @@ package performance
 import (
 	"crypto/tls"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -155,7 +156,7 @@ func addNamespaceMesh(namespace string) error {
 	return nil
 }
 
-func httpPostQueryAuth(url string, user string, token string) (*http.Response, error) {
+func httpPostQueryAuth(url string, user string, pass string) (*http.Response, error) {
 	// Declare http client
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
@@ -167,12 +168,30 @@ func httpPostQueryAuth(url string, user string, token string) (*http.Response, e
 	if err != nil {
 		return nil, err
 	}
-	req.SetBasicAuth(user, token)
+	req.SetBasicAuth(user, pass)
 
 	return client.Do(req)
 }
 
-func obtainMeshPrometheusToken() (string, error) {
+func httpPostQueryBearer(url string, token string) (*http.Response, error) {
+	// Declare http client
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: tr}
+
+	// Declare HTTP Method and Url
+	req, err := http.NewRequest(http.MethodPost, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	token = strings.TrimSuffix(token, "\n")
+	req.Header.Add("Authorization", "Bearer "+token)
+
+	return client.Do(req)
+}
+
+func obtainPrometheusMeshToken() (string, error) {
 	token, err := util.ShellSilent(`oc get secret htpasswd -n istio-system --template='{{ .data.rawPassword }}' | base64 -d`)
 	if err != nil {
 		return "", err
@@ -180,13 +199,17 @@ func obtainMeshPrometheusToken() (string, error) {
 	return token, nil
 }
 
-func getMetricPrometheus(query string) (string, error) {
-	// Create Prometheus URL
-	routeHost, err := getRouteHost("prometheus", meshNamespace)
+func obtainPrometheusOCPToken() (string, error) {
+	token, err := util.ShellSilent(`oc whoami -t`)
 	if err != nil {
 		return "", err
 	}
-	promUrl := "https://" + routeHost + "/api/v1/query"
+	return token, nil
+}
+
+func getMetricPrometheus(host string, auth string, secret string, query string) (string, error) {
+	// Generate final URL
+	promUrl := "https://" + host + "/api/v1/query"
 	baseUrl, err := url.Parse(promUrl)
 	if err != nil {
 		return "", err
@@ -195,15 +218,23 @@ func getMetricPrometheus(query string) (string, error) {
 	values.Add("query", prometheusAPIMap[query])
 	baseUrl.RawQuery = values.Encode()
 
-	// Obtain token to connect to Prometheus
-	token, err := obtainMeshPrometheusToken()
-	if err != nil {
-		return "", err
-	}
-
 	// HTTP Post call to Prometheus
-	resp, err := httpPostQueryAuth(baseUrl.String(), "internal", token)
-	if err != nil {
+	var resp *http.Response
+	if auth == "user" {
+		user := "internal"
+		pass := secret
+		resp, err = httpPostQueryAuth(baseUrl.String(), user, pass)
+		if err != nil {
+			return "", err
+		}
+	} else if auth == "token" {
+		token := secret
+		resp, err = httpPostQueryBearer(baseUrl.String(), token)
+		if err != nil {
+			return "", err
+		}
+	} else {
+		err := fmt.Errorf("Auth method not defined: ", auth)
 		return "", err
 	}
 
@@ -221,4 +252,46 @@ func getMetricPrometheus(query string) (string, error) {
 
 }
 
-//curl -kv -u internal:$PEPE https://prometheus-istio-system.apps.meshtests.sandbox84.opentlc.com/api/v1/query --data-urlencode "query=histogram_quantile(0.99, sum(rate(pilot_proxy_convergence_time_bucket[1m])) by (le))"
+func getMetricPrometheusMesh(query string) (string, error) {
+	// Retrieve Mesh Prometheus Host
+	routeHost, err := getRouteHost("prometheus", meshNamespace)
+	if err != nil {
+		return "", err
+	}
+
+	// Obtain token to connect to Prometheus
+	pass, err := obtainPrometheusMeshToken()
+	if err != nil {
+		return "", err
+	}
+
+	// HTTP Post call to Prometheus
+	resp, err := getMetricPrometheus(routeHost, "user", pass, query)
+	if err != nil {
+		return "", err
+	}
+
+	return resp, nil
+}
+
+func getMetricPrometheusOCP(query string) (string, error) {
+	// Retrieve Mesh Prometheus Host
+	routeHost, err := getRouteHost("prometheus-k8s", "openshift-monitoring")
+	if err != nil {
+		return "", err
+	}
+
+	// Obtain token to connect to Prometheus
+	token, err := obtainPrometheusOCPToken()
+	if err != nil {
+		return "", err
+	}
+
+	// HTTP Post call to Prometheus
+	resp, err := getMetricPrometheus(routeHost, "token", token, query)
+	if err != nil {
+		return "", err
+	}
+
+	return resp, nil
+}

@@ -8,13 +8,13 @@ import (
 
 func TestXDSSyncTime(t *testing.T) {
 	util.Log.Info("** TEST: TestXDSSyncTime")
-	xdsPushCount, err := getMetricPrometheus("xds_ppctc")
+	xdsPushCount, err := getMetricPrometheusMesh("xds_ppctc")
 	if err != nil {
 		util.Log.Error(err)
 		t.Error(err)
 		t.FailNow()
 	}
-	xdsPushTime, err := getMetricPrometheus("xds_ppctb")
+	xdsPushTime, err := getMetricPrometheusMesh("xds_ppctb")
 	if err != nil {
 		util.Log.Error(err)
 		t.Error(err)
@@ -27,7 +27,7 @@ func TestXDSSyncTime(t *testing.T) {
 
 func TestIstiodMem(t *testing.T) {
 	util.Log.Info("** TEST: TestIstiodMem")
-	istiodMem, err := getMetricPrometheus("istiod_mem")
+	istiodMem, err := getMetricPrometheusOCP("istiod_mem")
 	if err != nil {
 		util.Log.Error(err)
 		t.Error(err)
@@ -39,7 +39,7 @@ func TestIstiodMem(t *testing.T) {
 
 func TestIstiodCpu(t *testing.T) {
 	util.Log.Info("** TEST: TestIstiodCpu")
-	istiodCpu, err := getMetricPrometheus("istiod_cpu")
+	istiodCpu, err := getMetricPrometheusOCP("istiod_cpu")
 	if err != nil {
 		util.Log.Error(err)
 		t.Error(err)
@@ -47,5 +47,4 @@ func TestIstiodCpu(t *testing.T) {
 	}
 	util.Log.Info(istiodCpu)
 	util.Log.Info(" If istiodCpu is lower than ", istiodAcceptanceCpu)
-
 }

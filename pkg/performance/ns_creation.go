@@ -12,7 +12,7 @@ import (
 
 func arrayPositionFind(a []string, x string) int {
 	for i, n := range a {
-		if x == n {
+		if x == n || "["+x == n || x+"]" == n {
 			return i
 		}
 	}
@@ -66,7 +66,7 @@ func testNamespaceAdditionTime(index int, acceptanceTime int) error {
 	// Check addition time
 	if duration > acceptanceTimeMS {
 		util.Log.Error("Acceptance time exceeded")
-		return fmt.Errorf("Acceptance time exceeded")
+		return fmt.Errorf("acceptance time exceeded")
 	}
 	util.Log.Info("Duration OK: ", duration)
 	return nil
@@ -81,9 +81,7 @@ func TestNSAdditionTime(t *testing.T) {
 
 	// Iterate namespace bundles
 	nsCounts := strings.Split(nsCountBundle, ",")
-	var step int
 	for i, s := range nsCounts {
-		step = i
 		// Define required variables
 		count, _ := strconv.Atoi(s)
 		acceptanceTime, _ := strconv.Atoi(nsAcceptanceTime)
@@ -114,16 +112,32 @@ func TestNSAdditionTime(t *testing.T) {
 			break
 		}
 	}
+}
+
+func TestNSAdditionTimeClean(t *testing.T) {
+	util.Log.Info("** TEST: TestNSAdditionTimeClean")
+
+	// Test SMMR and SMCP are Ready
+	TestSMCP(t)
+	TestSMMR(t)
+
+	// Iterate namespace bundles
+	nsCounts := strings.Split(nsCountBundle, ",")
 
 	// clean namespaces
 	util.Log.Info("cleaning up test")
-	max, _ := strconv.Atoi(nsCounts[step])
+	max, _ := strconv.Atoi(nsCounts[len(nsCounts)-1])
 	err := deleteNSBundle(0, max)
 	if err != nil {
 		t.Error(err.Error())
 	}
 	for _, s := range nsCounts {
+		util.Log.Info("cleaning up ns " + appNSPrefix + s + "-measure")
 		nsName := appNSPrefix + s + "-measure"
 		delNamespaceMesh(nsName)
 	}
+
+	// Test SMMR and SMCP are Ready
+	TestSMCP(t)
+	TestSMMR(t)
 }

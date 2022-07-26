@@ -23,20 +23,32 @@ import (
 var t = &testing.T{}
 
 var performanceCases = []testing.InternalTest{
-	// testing.InternalTest{
-	// 	Name: "A1",
-	// 	F:    performance.TestSMCPInstalled,
-	// },
-	// testing.InternalTest{
-	// 	Name: "A2",
-	// 	F:    performance.TestSMMRInstalled,
-	// },
-	// testing.InternalTest{
-	// 	Name: "CP1",
-	// 	F:    performance.TestNSAdditionTime,
-	// },
+	testing.InternalTest{
+		Name: "A1",
+		F:    performance.TestSMCPInstalled,
+	},
+	testing.InternalTest{
+		Name: "A2",
+		F:    performance.TestSMMRInstalled,
+	},
 	testing.InternalTest{
 		Name: "CP1",
+		F:    performance.TestNSAdditionTime,
+	},
+	testing.InternalTest{
+		Name: "CP2.1",
 		F:    performance.TestXDSSyncTime,
+	},
+	testing.InternalTest{
+		Name: "CP3.1",
+		F:    performance.TestIstiodMem,
+	},
+	testing.InternalTest{
+		Name: "CP3.2",
+		F:    performance.TestIstiodCpu,
+	},
+	testing.InternalTest{
+		Name: "A3",
+		F:    performance.TestNSAdditionTimeClean,
 	},
 }

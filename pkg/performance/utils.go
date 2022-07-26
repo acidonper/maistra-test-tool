@@ -55,9 +55,10 @@ func createNS(namespace string) error {
 	util.Log.Debug("Creating namespace", namespace)
 	_, err := util.ShellSilent(`oc new-project %s`, namespace)
 	if err != nil {
-		if !strings.Contains(err.Error(), "AlreadyExists") {
-			return err
-		}
+		// if !strings.Contains(err.Error(), "AlreadyExists") {
+		// 	return err
+		// }
+		return err
 	}
 	return nil
 }

@@ -234,7 +234,7 @@ func getMetricPrometheus(host string, auth string, secret string, query string) 
 			return "", err
 		}
 	} else {
-		err := fmt.Errorf("Auth method not defined: ", auth)
+		err := fmt.Errorf("Auth method not defined: %q", auth)
 		return "", err
 	}
 

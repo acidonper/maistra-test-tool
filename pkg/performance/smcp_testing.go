@@ -7,7 +7,7 @@ import (
 )
 
 func TestSMCPInstalled(t *testing.T) {
-	util.Log.Info("** TEST: TestNSAdditionTime")
+	util.Log.Info("** TEST: TestSMCPInstalled")
 	TestSMCP(t)
 }
 

@@ -66,9 +66,9 @@ func testNamespaceAdditionTime(index int, acceptanceTime int) error {
 	// Check addition time
 	if duration > acceptanceTimeMS {
 		util.Log.Error("Acceptance time exceeded")
-		return fmt.Errorf("acceptance time exceeded")
+		return fmt.Errorf("Acceptance time exceeded")
 	}
-	util.Log.Info("Duration OK: ", duration)
+	util.Log.Info("Duration OK: ", duration, " miliseconds")
 	return nil
 }
 
@@ -125,14 +125,14 @@ func TestNSAdditionTimeClean(t *testing.T) {
 	nsCounts := strings.Split(nsCountBundle, ",")
 
 	// clean namespaces
-	util.Log.Info("cleaning up test")
+	util.Log.Info("Cleaning up TestNSAdditionTime objects")
 	max, _ := strconv.Atoi(nsCounts[len(nsCounts)-1])
 	err := deleteNSBundle(0, max)
 	if err != nil {
 		t.Error(err.Error())
 	}
 	for _, s := range nsCounts {
-		util.Log.Info("cleaning up ns " + appNSPrefix + s + "-measure")
+		util.Log.Info("Deleting namespace " + appNSPrefix + s + "-measure")
 		nsName := appNSPrefix + s + "-measure"
 		delNamespaceMesh(nsName)
 	}

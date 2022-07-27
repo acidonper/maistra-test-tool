@@ -15,23 +15,24 @@ import (
 )
 
 func TestSMCP(t *testing.T) {
-	util.Log.Info("Checking SMCP in ", meshNamespace)
-	msg, _ := util.Shell(`oc wait --for condition=Ready -n %s smcp/%s --timeout 30s`, meshNamespace, smcpName)
+	msg, _ := util.ShellSilent(`oc wait --for condition=Ready -n %s smcp/%s --timeout 30s`, meshNamespace, smcpName)
 	if !strings.Contains(msg, "condition met") {
 		util.Log.Error("SMCP not Ready")
 		t.Error("SMCP not Ready")
 		t.FailNow()
 	}
+	util.Log.Info("OK - SMCP ", smcpName, " in namespace ", meshNamespace)
 }
 
 func TestSMMR(t *testing.T) {
-	util.Log.Info("Checking SMMR in ", meshNamespace)
-	msg, _ := util.Shell(`oc wait --for condition=Ready -n %s smmr/default --timeout 30s`, meshNamespace)
+	msg, _ := util.ShellSilent(`oc wait --for condition=Ready -n %s smmr/default --timeout 30s`, meshNamespace)
 	if !strings.Contains(msg, "condition met") {
 		util.Log.Error("SMMR not Ready")
 		t.Error("SMMR not Ready")
 		t.FailNow()
 	}
+	util.Log.Info("OK - SMMR in namespace ", meshNamespace)
+
 }
 
 func getRouteHost(route string, namespace string) (string, error) {
@@ -41,6 +42,15 @@ func getRouteHost(route string, namespace string) (string, error) {
 		return "", err
 	}
 	return msg, nil
+}
+
+func getMeshPods() ([]string, error) {
+	meshPods, err := util.ShellSilent(`oc get pods -A -l istio.io/rev=%s --field-selector=status.phase==Running -o go-template='{{range .items}}{{.metadata.name}}/{{.metadata.namespace}},{{end}}'`, smcpName)
+	if err != nil {
+		return nil, err
+	}
+	podsList := strings.Split(meshPods, ",")
+	return podsList, nil
 }
 
 func deleteNS(namespace string) error {
@@ -56,9 +66,6 @@ func createNS(namespace string) error {
 	util.Log.Debug("Creating namespace", namespace)
 	_, err := util.ShellSilent(`oc new-project %s`, namespace)
 	if err != nil {
-		// if !strings.Contains(err.Error(), "AlreadyExists") {
-		// 	return err
-		// }
 		return err
 	}
 	return nil
@@ -66,7 +73,10 @@ func createNS(namespace string) error {
 
 func delNamespaceMesh(namespace string) error {
 	// Find namespace in members array
-	tmp, _ := util.ShellSilent(`oc get smmr default -n %s --template='{{ .spec.members }}'`, meshNamespace)
+	tmp, err := util.ShellSilent(`oc get smmr default -n %s --template='{{ .spec.members }}'`, meshNamespace)
+	if err != nil {
+		return err
+	}
 	members := strings.Split(tmp, " ")
 	position := arrayPositionFind(members, namespace)
 
@@ -215,7 +225,7 @@ func getMetricPrometheus(host string, auth string, secret string, query string) 
 		return "", err
 	}
 	values := baseUrl.Query()
-	values.Add("query", prometheusAPIMap[query])
+	values.Add("query", query)
 	baseUrl.RawQuery = values.Encode()
 
 	// HTTP Post call to Prometheus
@@ -259,6 +269,9 @@ func getMetricPrometheusMesh(query string) (string, error) {
 		return "", err
 	}
 
+	// Retrive respective query
+	prometheusQuery := prometheusMeshAPIMap[query]
+
 	// Obtain token to connect to Prometheus
 	pass, err := obtainPrometheusMeshToken()
 	if err != nil {
@@ -266,7 +279,7 @@ func getMetricPrometheusMesh(query string) (string, error) {
 	}
 
 	// HTTP Post call to Prometheus
-	resp, err := getMetricPrometheus(routeHost, "user", pass, query)
+	resp, err := getMetricPrometheus(routeHost, "user", pass, prometheusQuery)
 	if err != nil {
 		return "", err
 	}
@@ -274,7 +287,7 @@ func getMetricPrometheusMesh(query string) (string, error) {
 	return resp, nil
 }
 
-func getMetricPrometheusOCP(query string) (string, error) {
+func getMetricPrometheusOCP(query string, params map[string]string) (string, error) {
 	// Retrieve Mesh Prometheus Host
 	routeHost, err := getRouteHost("prometheus-k8s", "openshift-monitoring")
 	if err != nil {
@@ -287,11 +300,79 @@ func getMetricPrometheusOCP(query string) (string, error) {
 		return "", err
 	}
 
+	// Retrive respective query
+	prometheusQuery := ""
+	if params != nil {
+		prometheusQuery = prometheusAPIMapCustom[query]
+		for key, value := range params {
+			prometheusQuery = strings.Replace(prometheusQuery, key, value, -1)
+		}
+	} else {
+		prometheusQuery = prometheusAPIMap[query]
+	}
+
 	// HTTP Post call to Prometheus
-	resp, err := getMetricPrometheus(routeHost, "token", token, query)
+	resp, err := getMetricPrometheus(routeHost, "token", token, prometheusQuery)
 	if err != nil {
 		return "", err
 	}
 
 	return resp, nil
+}
+
+func getMeshProxies() (map[string]string, error) {
+	// Find proxies in the mesh
+	podsList, err := getMeshPods()
+	if err != nil {
+		return nil, err
+	}
+
+	// generate the respective map excluding control plane namespace proxies
+	pods := make(map[string]string)
+	for _, s := range podsList {
+		if !strings.Contains(s, meshNamespace) && s != "" {
+			podMetadata := strings.Split(s, "/")
+			pods[podMetadata[0]] = podMetadata[1]
+		}
+	}
+
+	return pods, nil
+}
+
+func getMeshIngressProxies() (map[string]string, error) {
+	// Find proxies in the mesh
+	podsList, err := getMeshPods()
+	if err != nil {
+		return nil, err
+	}
+
+	// generate the respective map filtering ingress gateways
+	pods := make(map[string]string)
+	for _, s := range podsList {
+		if strings.Contains(s, "istio-ingressgateway-") && s != "" {
+			podMetadata := strings.Split(s, "/")
+			pods[podMetadata[0]] = podMetadata[1]
+		}
+	}
+
+	return pods, nil
+}
+
+func getMeshEgressProxies() (map[string]string, error) {
+	// Find proxies in the mesh
+	podsList, err := getMeshPods()
+	if err != nil {
+		return nil, err
+	}
+
+	// generate the respective map filtering egress gateways
+	pods := make(map[string]string)
+	for _, s := range podsList {
+		if strings.Contains(s, "istio-egressgateway-") && s != "" {
+			podMetadata := strings.Split(s, "/")
+			pods[podMetadata[0]] = podMetadata[1]
+		}
+	}
+
+	return pods, nil
 }

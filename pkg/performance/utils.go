@@ -55,7 +55,7 @@ func getMeshPods() ([]string, error) {
 
 func deleteNS(namespace string) error {
 	util.Log.Debug("Deleting namespace", namespace)
-	_, err := util.ShellSilent(`oc delete project %s`, namespace)
+	_, err := util.ShellSilent(`oc delete project %s --wait=true`, namespace)
 	if err != nil {
 		return err
 	}
@@ -244,8 +244,7 @@ func getMetricPrometheus(host string, auth string, secret string, query string) 
 			return "", err
 		}
 	} else {
-		err := fmt.Errorf("Auth method not defined: ", auth)
-		return "", err
+		return "", fmt.Errorf("auth method not defined: " + auth)
 	}
 
 	// Process HTTP response

@@ -1,6 +1,7 @@
 package performance
 
 import (
+	"strconv"
 	"testing"
 
 	"github.com/maistra/maistra-test-tool/pkg/util"
@@ -28,13 +29,22 @@ func TestXDSSyncTime(t *testing.T) {
 func TestIstiodMem(t *testing.T) {
 	util.Log.Info("** TEST: TestIstiodMem")
 	istiodMem, err := getMetricPrometheusOCP("istiod_mem")
+	istiodMemValue, err := parseResponse([]byte(istiodMem))
 	if err != nil {
 		util.Log.Error(err)
 		t.Error(err)
 		t.FailNow()
 	}
-	util.Log.Info(istiodMem)
-	util.Log.Info(" If istiodMem is lower than ", istiodAcceptanceMem)
+
+	// Transform values to integers and compare them in bytes
+	istiodMemValueInt, err := strconv.Atoi(istiodMemValue[0])
+	istiodAcceptanceMemIntBytes, err := strconv.Atoi(istiodAcceptanceMem)
+	istiodAcceptanceMemIntBytes = istiodAcceptanceMemIntBytes * bytesToMegaBytes
+
+	util.Log.Info(" If istiodMem is lower than ", istiodAcceptanceMem, "MB")
+	if istiodMemValueInt > istiodAcceptanceMemIntBytes {
+		t.Errorf("Istiod Memory Value is %v. Want something lower than %v", istiodMemValueInt, istiodAcceptanceMemIntBytes)
+	}
 }
 
 func TestIstiodCpu(t *testing.T) {

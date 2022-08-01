@@ -2,6 +2,7 @@ package performance
 
 import (
 	"crypto/tls"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -13,6 +14,30 @@ import (
 
 	"github.com/maistra/maistra-test-tool/pkg/util"
 )
+
+type PromResponse struct {
+	Status string `json:"status"`
+	Data   struct {
+		ResultType string `json:"resultType"`
+		Result     []struct {
+			Metric struct {
+				Name                 string `json:"__name__"`
+				App                  string `json:"app"`
+				Instance             string `json:"instance"`
+				Istio                string `json:"istio"`
+				IstioIoRev           string `json:"istio_io_rev"`
+				Job                  string `json:"job"`
+				KubernetesNamespace  string `json:"kubernetes_namespace"`
+				KubernetesPodName    string `json:"kubernetes_pod_name"`
+				Le                   string `json:"le"`
+				MaistraControlPlane  string `json:"maistra_control_plane"`
+				PodTemplateHash      string `json:"pod_template_hash"`
+				SidecarIstioIoInject string `json:"sidecar_istio_io_inject"`
+			} `json:"metric"`
+			Value []interface{} `json:"value"`
+		} `json:"result"`
+	} `json:"data"`
+}
 
 func TestSMCP(t *testing.T) {
 	util.Log.Info("Checking SMCP in ", meshNamespace)
@@ -294,4 +319,26 @@ func getMetricPrometheusOCP(query string) (string, error) {
 	}
 
 	return resp, nil
+}
+
+func parseResponse(response []byte) ([]string, error) {
+
+	var newResponse PromResponse
+
+	err := json.Unmarshal(response, &newResponse)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var values []string
+
+	// Retrieve all values from the array of results
+	for i := 0; i < len(newResponse.Data.Result); i++ {
+		var value = fmt.Sprintf("%v", newResponse.Data.Result[i].Value[1])
+		values = append(values, value)
+	}
+
+	return values, nil
+
 }

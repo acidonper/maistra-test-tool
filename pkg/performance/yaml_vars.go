@@ -26,7 +26,7 @@ var (
 	nsAcceptanceTime      string            = util.Getenv("NSACCEPTANCETIME", "5")
 	xdsPushAcceptanceTime string            = util.Getenv("XDSPUSHACCEPTANCETIME", "1")
 	istiodAcceptanceMem   string            = util.Getenv("ISTIODACCEPTANCEMEM", "1024")
-	istiodAcceptanceCpu   string            = util.Getenv("ISTIODACCEPTANCECPU", "1000")
+	istiodAcceptanceCpu   string            = util.Getenv("ISTIODACCEPTANCECPU", "1")
 	bytesToMegaBytes      int               = 1000000
 	prometheusAPIMap      map[string]string = map[string]string{
 		"xds_ppctc":  "pilot_proxy_convergence_time_count",

@@ -25,10 +25,16 @@ func TestXDSSyncTime(t *testing.T) {
 	xdsPushCountValue, err := parseResponse([]byte(xdsPushCount))
 	xdsPushTimeValue, err := parseResponse([]byte(xdsPushTime))
 
+	if err != nil {
+		util.Log.Error(err)
+		t.Error(err)
+		t.FailNow()
+	}
+
+	util.Log.Info(" If xdsPushCount and xdsPushTime are equal - OK")
 	if xdsPushCountValue[0] != xdsPushTimeValue[0] {
 		t.Errorf("xdsPushCount (%v) and xdsPushTime (%v) are not equal", xdsPushCountValue, xdsPushTimeValue)
 	}
-	util.Log.Info(" If xdsPushCount and xdsPushTime are equal - OK")
 }
 
 func TestIstiodMem(t *testing.T) {
@@ -44,6 +50,13 @@ func TestIstiodMem(t *testing.T) {
 	// Transform values to integers and compare them in bytes
 	istiodMemValueInt, err := strconv.Atoi(istiodMemValue[0])
 	istiodAcceptanceMemIntBytes, err := strconv.Atoi(istiodAcceptanceMem)
+
+	if err != nil {
+		util.Log.Error(err)
+		t.Error(err)
+		t.FailNow()
+	}
+
 	istiodAcceptanceMemIntBytes = istiodAcceptanceMemIntBytes * bytesToMegaBytes
 
 	util.Log.Info(" If istiodMem is lower than ", istiodAcceptanceMem, "MB")
@@ -60,6 +73,25 @@ func TestIstiodCpu(t *testing.T) {
 		t.Error(err)
 		t.FailNow()
 	}
-	util.Log.Info(istiodCpu)
+	istiodCpuValue, err := parseResponse([]byte(istiodCpu))
+
+	if err != nil {
+		util.Log.Error(err)
+		t.Error(err)
+		t.FailNow()
+	}
+
+	istiodAcceptanceCpuInt, err := strconv.ParseFloat(istiodAcceptanceCpu, 32)
+	istiodCpuValueInt, err := strconv.ParseFloat(istiodCpuValue[0], 32)
+
+	if err != nil {
+		util.Log.Error(err)
+		t.Error(err)
+		t.FailNow()
+	}
+
 	util.Log.Info(" If istiodCpu is lower than ", istiodAcceptanceCpu)
+	if istiodCpuValueInt > istiodAcceptanceCpuInt {
+		t.Errorf("Istiod CPU Value is %v. Want something lower than %v", istiodCpuValueInt, istiodAcceptanceCpuInt)
+	}
 }

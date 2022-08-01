@@ -21,8 +21,13 @@ func TestXDSSyncTime(t *testing.T) {
 		t.Error(err)
 		t.FailNow()
 	}
-	util.Log.Info(xdsPushCount)
-	util.Log.Info(xdsPushTime)
+
+	xdsPushCountValue, err := parseResponse([]byte(xdsPushCount))
+	xdsPushTimeValue, err := parseResponse([]byte(xdsPushTime))
+
+	if xdsPushCountValue[0] != xdsPushTimeValue[0] {
+		t.Errorf("xdsPushCount (%v) and xdsPushTime (%v) are not equal", xdsPushCountValue, xdsPushTimeValue)
+	}
 	util.Log.Info(" If xdsPushCount and xdsPushTime are equal - OK")
 }
 

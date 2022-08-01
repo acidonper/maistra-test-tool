@@ -36,8 +36,16 @@ var performanceCases = []testing.InternalTest{
 		F:    performance.TestNSAdditionTime,
 	},
 	testing.InternalTest{
+		Name: "A3",
+		F:    performance.TestNSAdditionTimeClean,
+	},
+	// testing.InternalTest{
+	// 	Name: "A4",
+	// 	F:    performance.createTestCPObjects,  TODO
+	// },
+	testing.InternalTest{
 		Name: "CP2.1",
-		F:    performance.TestXDSSyncTime,
+		F:    performance.TestXDSPushes,
 	},
 	testing.InternalTest{
 		Name: "CP3.1",
@@ -47,8 +55,40 @@ var performanceCases = []testing.InternalTest{
 		Name: "CP3.2",
 		F:    performance.TestIstiodCpu,
 	},
+	// testing.InternalTest{
+	// 	Name: "A5",
+	// 	F:    performance.deleteTestCPObjects,  TODO
+	// },
+	// testing.InternalTest{
+	// 	Name: "A6",
+	// 	F:    performance.createTestDPObjects,  TODO
+	// },
 	testing.InternalTest{
-		Name: "A3",
-		F:    performance.TestNSAdditionTimeClean,
+		Name: "DP1.1",
+		F:    performance.TestIstioProxiesMem,
 	},
+	testing.InternalTest{
+		Name: "DP1.2",
+		F:    performance.TestIstioProxiesCpu,
+	},
+	testing.InternalTest{
+		Name: "DP2.1",
+		F:    performance.TestIstioIngressProxiesMem,
+	},
+	testing.InternalTest{
+		Name: "DP2.2",
+		F:    performance.TestIstioIngressProxiesCpu,
+	},
+	testing.InternalTest{
+		Name: "DP3.1",
+		F:    performance.TestIstioEgressProxiesMem,
+	},
+	testing.InternalTest{
+		Name: "DP3.2",
+		F:    performance.TestIstioEgressProxiesCpu,
+	},
+	// testing.InternalTest{
+	// 	Name: "A6",
+	// 	F:    performance.deleteTestDPObjects,  TODO
+	// },
 }

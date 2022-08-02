@@ -114,7 +114,6 @@ func TestIstioProxiesMem(t *testing.T) {
 			t.Error(err)
 			t.FailNow()
 		}
-		util.Log.Info(istiodMem)
 
 		istiodMemValue, err := parseResponse([]byte(istiodMem))
 		istiodMemValueInt, err := strconv.Atoi(istiodMemValue[0])
@@ -153,8 +152,22 @@ func TestIstioProxiesCpu(t *testing.T) {
 			t.Error(err)
 			t.FailNow()
 		}
-		util.Log.Info(istiodCpu)
+
+		istiodCpuValue, err := parseResponse([]byte(istiodCpu))
+		istiodCpuValueInt, err := strconv.ParseFloat(istiodCpuValue[0], 32)
+		istioProxiesAcceptanceCpuInt, err := strconv.ParseFloat(istioProxiesAcceptanceCpu, 32)
+
+		if err != nil {
+			util.Log.Error(err)
+			t.Error(err)
+			t.FailNow()
+		}
+
 		util.Log.Info(" If istioProxiesCpu is lower than ", istioProxiesAcceptanceCpu)
+		if istiodCpuValueInt > istioProxiesAcceptanceCpuInt {
+			t.Errorf("Istiod CPU Proxy Value is %v. Want something lower than %v", istiodCpuValueInt, istioProxiesAcceptanceCpuInt)
+		}
+
 	}
 }
 

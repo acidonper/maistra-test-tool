@@ -81,8 +81,8 @@ func TestIstiodCpu(t *testing.T) {
 		t.FailNow()
 	}
 
-	istiodAcceptanceCpuInt, err := strconv.ParseFloat(istiodAcceptanceCpu, 32)
-	istiodCpuValueInt, err := strconv.ParseFloat(istiodCpuValue[0], 32)
+	istiodAcceptanceCpuFloat, err := strconv.ParseFloat(istiodAcceptanceCpu, 32)
+	istiodCpuValueFloat, err := strconv.ParseFloat(istiodCpuValue[0], 32)
 
 	if err != nil {
 		util.Log.Error(err)
@@ -91,8 +91,8 @@ func TestIstiodCpu(t *testing.T) {
 	}
 
 	util.Log.Info(" If istiodCpu is lower than ", istiodAcceptanceCpu)
-	if istiodCpuValueInt > istiodAcceptanceCpuInt {
-		t.Errorf("Istiod CPU Value is %v. Want something lower than %v", istiodCpuValueInt, istiodAcceptanceCpuInt)
+	if istiodCpuValueFloat > istiodAcceptanceCpuFloat {
+		t.Errorf("Istiod CPU Value is %v. Want something lower than %v", istiodCpuValueFloat, istiodAcceptanceCpuFloat)
 	}
 }
 
@@ -154,8 +154,8 @@ func TestIstioProxiesCpu(t *testing.T) {
 		}
 
 		istiodCpuValue, err := parseResponse([]byte(istiodCpu))
-		istiodCpuValueInt, err := strconv.ParseFloat(istiodCpuValue[0], 32)
-		istioProxiesAcceptanceCpuInt, err := strconv.ParseFloat(istioProxiesAcceptanceCpu, 32)
+		istiodCpuValueFloat, err := strconv.ParseFloat(istiodCpuValue[0], 32)
+		istioProxiesAcceptanceCpuFloat, err := strconv.ParseFloat(istioProxiesAcceptanceCpu, 32)
 
 		if err != nil {
 			util.Log.Error(err)
@@ -164,8 +164,8 @@ func TestIstioProxiesCpu(t *testing.T) {
 		}
 
 		util.Log.Info(" If istioProxiesCpu is lower than ", istioProxiesAcceptanceCpu)
-		if istiodCpuValueInt > istioProxiesAcceptanceCpuInt {
-			t.Errorf("Istiod CPU Proxy Value is %v. Want something lower than %v", istiodCpuValueInt, istioProxiesAcceptanceCpuInt)
+		if istiodCpuValueFloat > istioProxiesAcceptanceCpuFloat {
+			t.Errorf("Istiod CPU Proxy Value is %v. Want something lower than %v", istiodCpuValueFloat, istioProxiesAcceptanceCpuFloat)
 		}
 
 	}
@@ -226,8 +226,21 @@ func TestIstioIngressProxiesCpu(t *testing.T) {
 			t.Error(err)
 			t.FailNow()
 		}
-		util.Log.Info(istioIngressProxyCpu)
+		istioIngressProxyCpuValue, err := parseResponse([]byte(istioIngressProxyCpu))
+		istioIngressProxyCpuValueFloat, err := strconv.ParseFloat(istioIngressProxyCpuValue[0], 32)
+		istioIngressProxiesAcceptanceCpuFloat, err := strconv.ParseFloat(istioIngressProxiesAcceptanceCpu, 32)
+
+		if err != nil {
+			util.Log.Error(err)
+			t.Error(err)
+			t.FailNow()
+		}
+
 		util.Log.Info(" If istioIngressProxiesAcceptanceCpu is lower than ", istioIngressProxiesAcceptanceCpu)
+		if istioIngressProxyCpuValueFloat > istioIngressProxiesAcceptanceCpuFloat {
+			t.Errorf("Istiod CPU Proxy Value is %v. Want something lower than %v", istioIngressProxyCpuValueFloat, istioIngressProxiesAcceptanceCpuFloat)
+		}
+
 	}
 }
 

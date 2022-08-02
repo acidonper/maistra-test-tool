@@ -299,7 +299,20 @@ func TestIstioEgressProxiesCpu(t *testing.T) {
 			t.Error(err)
 			t.FailNow()
 		}
-		util.Log.Info(istioEgressProxyCpu)
+		istioEgressProxyCpuValue, err := parseResponse([]byte(istioEgressProxyCpu))
+		istioEgressProxyCpuValueFloat, err := strconv.ParseFloat(istioEgressProxyCpuValue[0], 32)
+		istioEgressProxiesAcceptanceCpuFloat, err := strconv.ParseFloat(istioEgressProxiesAcceptanceCpu, 32)
+
+		if err != nil {
+			util.Log.Error(err)
+			t.Error(err)
+			t.FailNow()
+		}
+
 		util.Log.Info(" If istioEgressProxiesAcceptanceCpu is lower than ", istioEgressProxiesAcceptanceCpu)
+		if istioEgressProxyCpuValueFloat > istioEgressProxiesAcceptanceCpuFloat {
+			t.Errorf("Istiod CPU Egress Proxy Value is %v. Want something lower than %v", istioEgressProxyCpuValueFloat, istioEgressProxiesAcceptanceCpuFloat)
+		}
+
 	}
 }

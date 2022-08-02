@@ -126,7 +126,7 @@ func TestIstioProxiesMem(t *testing.T) {
 			t.FailNow()
 		}
 
-		util.Log.Info(" If IstioProxiesMem is lower than ", istioProxiesAcceptanceMemBytes)
+		util.Log.Info(" If IstioProxiesMem is lower than ", istioProxiesAcceptanceMem, "MB")
 		if istiodMemValueInt > istioProxiesAcceptanceMemBytes {
 			t.Errorf("Proxy Memory value (%v) is higher than the acceptance (in bytes): %v", istiodMemValueInt, istioProxiesAcceptanceMemBytes)
 		}
@@ -200,7 +200,7 @@ func TestIstioIngressProxiesMem(t *testing.T) {
 			t.FailNow()
 		}
 
-		util.Log.Info(" If istioIngressProxiesAcceptanceMem is lower than ", istioIngressProxiesAcceptanceMemBytes)
+		util.Log.Info(" If istioIngressProxiesAcceptanceMem is lower than ", istioIngressProxiesAcceptanceMem, "MB")
 		if istioIngressProxyMemValueInt > istioIngressProxiesAcceptanceMemBytes {
 			t.Errorf("Proxy Memory value (%v) is higher than the acceptance (in bytes): %v", istioIngressProxyMemValueInt, istioIngressProxiesAcceptanceMemBytes)
 		}
@@ -262,8 +262,22 @@ func TestIstioEgressProxiesMem(t *testing.T) {
 			t.Error(err)
 			t.FailNow()
 		}
-		util.Log.Info(istioEgressProxyMem)
-		util.Log.Info(" If istioEgressProxiesAcceptanceMem is lower than ", istioEgressProxiesAcceptanceMem)
+		istioEgressProxyMemValue, err := parseResponse([]byte(istioEgressProxyMem))
+		istioEgressProxyMemValueInt, err := strconv.Atoi(istioEgressProxyMemValue[0])
+		istioEgressProxiesAcceptanceMemInt, err := strconv.Atoi(istioEgressProxiesAcceptanceMem)
+		istioEgressProxiesAcceptanceMemBytes := istioEgressProxiesAcceptanceMemInt * bytesToMegaBytes
+
+		if err != nil {
+			util.Log.Error(err)
+			t.Error(err)
+			t.FailNow()
+		}
+
+		util.Log.Info(" If istioEgressProxiesAcceptanceMem is lower than ", istioEgressProxiesAcceptanceMem, "MB")
+		if istioEgressProxyMemValueInt > istioEgressProxiesAcceptanceMemBytes {
+			t.Errorf("Proxy Egress Memory value (%v) is higher than the acceptance (in bytes): %v", istioEgressProxyMemValueInt, istioEgressProxiesAcceptanceMemBytes)
+		}
+
 	}
 }
 

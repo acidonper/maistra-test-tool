@@ -115,7 +115,23 @@ func TestIstioProxiesMem(t *testing.T) {
 			t.FailNow()
 		}
 		util.Log.Info(istiodMem)
-		util.Log.Info(" If IstioProxiesMem is lower than ", istioProxiesAcceptanceMem)
+
+		istiodMemValue, err := parseResponse([]byte(istiodMem))
+		istiodMemValueInt, err := strconv.Atoi(istiodMemValue[0])
+		istioProxiesAcceptanceMemInt, err := strconv.Atoi(istioEgressProxiesAcceptanceMem)
+		istioProxiesAcceptanceMemBytes := istioProxiesAcceptanceMemInt * bytesToMegaBytes
+
+		if err != nil {
+			util.Log.Error(err)
+			t.Error(err)
+			t.FailNow()
+		}
+
+		util.Log.Info(" If IstioProxiesMem is lower than ", istioProxiesAcceptanceMemBytes)
+		if istiodMemValueInt > istioProxiesAcceptanceMemBytes {
+			t.Errorf("Proxy Memory value (%v) is higher than the acceptance (in bytes): %v", istiodMemValueInt, istioProxiesAcceptanceMemBytes)
+		}
+
 	}
 }
 

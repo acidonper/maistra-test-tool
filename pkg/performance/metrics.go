@@ -117,7 +117,7 @@ func TestIstioProxiesMem(t *testing.T) {
 
 		istiodMemValue, err := parseResponse([]byte(istiodMem))
 		istiodMemValueInt, err := strconv.Atoi(istiodMemValue[0])
-		istioProxiesAcceptanceMemInt, err := strconv.Atoi(istioEgressProxiesAcceptanceMem)
+		istioProxiesAcceptanceMemInt, err := strconv.Atoi(istioProxiesAcceptanceMem)
 		istioProxiesAcceptanceMemBytes := istioProxiesAcceptanceMemInt * bytesToMegaBytes
 
 		if err != nil {
@@ -189,8 +189,22 @@ func TestIstioIngressProxiesMem(t *testing.T) {
 			t.Error(err)
 			t.FailNow()
 		}
-		util.Log.Info(istioIngressProxyMem)
-		util.Log.Info(" If istioIngressProxiesAcceptanceMem is lower than ", istioIngressProxiesAcceptanceMem)
+		istioIngressProxyMemValue, err := parseResponse([]byte(istioIngressProxyMem))
+		istioIngressProxyMemValueInt, err := strconv.Atoi(istioIngressProxyMemValue[0])
+		istioIngressProxiesAcceptanceMemInt, err := strconv.Atoi(istioIngressProxiesAcceptanceMem)
+		istioIngressProxiesAcceptanceMemBytes := istioIngressProxiesAcceptanceMemInt * bytesToMegaBytes
+
+		if err != nil {
+			util.Log.Error(err)
+			t.Error(err)
+			t.FailNow()
+		}
+
+		util.Log.Info(" If istioIngressProxiesAcceptanceMem is lower than ", istioIngressProxiesAcceptanceMemBytes)
+		if istioIngressProxyMemValueInt > istioIngressProxiesAcceptanceMemBytes {
+			t.Errorf("Proxy Memory value (%v) is higher than the acceptance (in bytes): %v", istioIngressProxyMemValueInt, istioIngressProxiesAcceptanceMemBytes)
+		}
+
 	}
 }
 

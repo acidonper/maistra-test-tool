@@ -17,7 +17,7 @@ package tests
 import (
 	"testing"
 
-	"github.com/maistra/maistra-test-tool/pkg/performance"
+	performance "github.com/maistra/maistra-test-tool/pkg/performance"
 )
 
 var t = &testing.T{}
@@ -39,10 +39,10 @@ var performanceCases = []testing.InternalTest{
 		Name: "A3",
 		F:    performance.TestNSAdditionTimeClean,
 	},
-	// testing.InternalTest{
-	// 	Name: "A4",
-	// 	F:    performance.createTestCPObjects,  TODO
-	// },
+	testing.InternalTest{
+		Name: "A4",
+		F:    performance.CreateTestCPObjects,
+	},
 	testing.InternalTest{
 		Name: "CP2.1",
 		F:    performance.TestXDSPushes,
@@ -55,14 +55,18 @@ var performanceCases = []testing.InternalTest{
 		Name: "CP3.2",
 		F:    performance.TestIstiodCpu,
 	},
-	// testing.InternalTest{
-	// 	Name: "A5",
-	// 	F:    performance.deleteTestCPObjects,  TODO
-	// },
-	// testing.InternalTest{
-	// 	Name: "A6",
-	// 	F:    performance.createTestDPObjects,  TODO
-	// },
+	testing.InternalTest{
+		Name: "A5",
+		F:    performance.DeleteTestCPObjects,
+	},
+	testing.InternalTest{
+		Name: "A6",
+		F:    performance.CreateTestDPObjects,
+	},
+	// // testing.InternalTest{
+	// // 	Name: "A7",
+	// // 	F:    performance.generateLoad,  TODO
+	// // },
 	testing.InternalTest{
 		Name: "DP1.1",
 		F:    performance.TestIstioProxiesMem,
@@ -87,8 +91,12 @@ var performanceCases = []testing.InternalTest{
 		Name: "DP3.2",
 		F:    performance.TestIstioEgressProxiesCpu,
 	},
-	// testing.InternalTest{
-	// 	Name: "A6",
-	// 	F:    performance.deleteTestDPObjects,  TODO
-	// },
+	// // testing.InternalTest{
+	// // 	Name: "A8",
+	// // 	F:    performance.analyseLoadOutput,  TODO
+	// // },
+	testing.InternalTest{
+		Name: "A9",
+		F:    performance.DeleteTestDPObjects,
+	},
 }

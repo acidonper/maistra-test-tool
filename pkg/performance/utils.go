@@ -1,6 +1,7 @@
 package performance
 
 import (
+	"context"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/maistra/maistra-test-tool/pkg/util"
 )
@@ -59,6 +61,17 @@ func deleteNS(namespace string) error {
 	if err != nil {
 		return err
 	}
+	check := false
+	for !check {
+		_, err := util.ShellSilent(`oc get namespace %s`, namespace)
+		if err != nil {
+			if !strings.Contains(err.Error(), "not found") {
+				return err
+			} else {
+				check = true
+			}
+		}
+	}
 	return nil
 }
 
@@ -71,7 +84,7 @@ func createNS(namespace string) error {
 	return nil
 }
 
-func delNamespaceMesh(namespace string) error {
+func deleteNSMesh(namespace string) error {
 	// Find namespace in members array
 	tmp, err := util.ShellSilent(`oc get smmr default -n %s --template='{{ .spec.members }}'`, meshNamespace)
 	if err != nil {
@@ -114,7 +127,7 @@ func delNamespaceMesh(namespace string) error {
 	return nil
 }
 
-func createNamespaceMesh(namespace string) error {
+func createNSMesh(namespace string) error {
 	// Create NS
 	err := createNS(namespace)
 	if err != nil {
@@ -143,7 +156,7 @@ func createNamespaceMesh(namespace string) error {
 	return nil
 }
 
-func addNamespaceMesh(namespace string) error {
+func addNSToMesh(namespace string) error {
 	// Path SMMR
 	_, err := util.ShellSilent(`oc patch smmr default -n %s --type='json' -p='[{"op": "add", "path": "/spec/members/-", "value":"%s"}]'`, meshNamespace, namespace)
 	if err != nil {
@@ -162,6 +175,89 @@ func addNamespaceMesh(namespace string) error {
 			configured = true
 			return nil
 		}
+	}
+	return nil
+}
+
+func arrayPositionFind(a []string, x string) int {
+	for i, n := range a {
+		if x == n || "["+x == n || x+"]" == n {
+			return i
+		}
+	}
+	return -1
+}
+
+func deleteNSBundle(min int, max int, prefix string) error {
+	util.Log.Info("Deleting namespaces from ", min, " to ", max)
+	for i := min; i < max; i++ {
+		nsName := prefix + strconv.Itoa(i)
+		err := deleteNSMesh(nsName)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func createNSBundle(min int, max int, prefix string) error {
+	util.Log.Info("Creating namespaces from ", min, " to ", max)
+	for i := min; i < max; i++ {
+		nsName := prefix + strconv.Itoa(i)
+		err := createNSMesh(nsName)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func deleteAppBundle(app string, number int, prefix string) error {
+	util.Log.Info("Deleting ", app, " applications: ", strconv.Itoa(number))
+
+	// Creating the respective number of apps
+	for i := 1; i <= number; i++ {
+		nsName := prefix + strconv.Itoa(i)
+		err := deleteNSMesh(nsName)
+		if err != nil {
+			return err
+		}
+		// Type booking
+		// if app == "bookinfo" {
+		// 	bookinfo := apps.Bookinfo{Namespace: nsName}
+		// 	bookinfo.BookinfoInstall(false)
+		// } else if app == "jumpapp" {
+		// 	jumpapp := apps.JumpApp{Namespace: nsName}
+		// 	jumpapp.JumpappInstall()
+		// } else {
+		// 	return fmt.Errorf("application " + app + " not defined")
+		// }
+
+	}
+	return nil
+}
+
+func createAppBundle(app string, number int, prefix string) error {
+	util.Log.Info("Deploying ", app, " applications: ", strconv.Itoa(number))
+
+	// Creating the respective number of apps
+	for i := 1; i <= number; i++ {
+		nsName := prefix + strconv.Itoa(i)
+		err := createNSMesh(nsName)
+		if err != nil {
+			return err
+		}
+		// Type booking
+		if app == "bookinfo" {
+			bookinfo := Bookinfo{Namespace: nsName}
+			bookinfo.BookinfoInstall(false)
+		} else if app == "jumpapp" {
+			jumpapp := JumpApp{Namespace: nsName}
+			jumpapp.JumpappInstall()
+		} else {
+			return fmt.Errorf("application " + app + " not defined")
+		}
+
 	}
 	return nil
 }
@@ -374,4 +470,60 @@ func getMeshEgressProxies() (map[string]string, error) {
 	}
 
 	return pods, nil
+}
+
+func GetPodStatus(n, pod string) (string, error) {
+	status, err := util.ShellSilent("kubectl -n %s get pods %s --no-headers", n, pod)
+	if err != nil {
+		status = podFailedGet
+	}
+	f := strings.Fields(status)
+	if len(f) > statusField {
+		return f[statusField], nil
+	}
+	return "", err
+}
+
+// GetPodName gets the pod name for the given namespace and label selector
+func GetPodName(n, labelSelector string) (pod string, err error) {
+	pod, err = util.ShellSilent("kubectl -n %s get pod -l %s -o jsonpath='{.items[0].metadata.name}'", n, labelSelector)
+	if err != nil {
+		return "", fmt.Errorf("could not get %s pod: %v", labelSelector, err)
+	}
+	return
+}
+
+func CheckPodRunning(n, name string) error {
+	retry := util.Retrier{
+		BaseDelay: 30 * time.Second,
+		MaxDelay:  30 * time.Second,
+		Retries:   6,
+	}
+
+	retryFn := func(_ context.Context, i int) error {
+		pod, err := GetPodName(n, name)
+		if err != nil {
+			return err
+		}
+		ready := true
+		status, errStatusPod := GetPodStatus(n, pod)
+		if errStatusPod != nil {
+			return err
+		}
+		if status != "Running" {
+			util.Log.Debug("%s in namespace %s is not running: %s", pod, n, status)
+			ready = false
+		}
+		if !ready {
+			return fmt.Errorf("pod %s is not ready", pod)
+		}
+		return nil
+	}
+	ctx := context.Background()
+	_, err := retry.Retry(ctx, retryFn)
+	if err != nil {
+		return err
+	}
+	util.Log.Debug("Got the pod name=%s running!", name)
+	return nil
 }

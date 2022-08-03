@@ -3,6 +3,7 @@ package performance
 import (
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -526,4 +527,25 @@ func CheckPodRunning(n, name string) error {
 	}
 	util.Log.Debug("Got the pod name=%s running!", name)
 	return nil
+}
+
+func parseResponse(response []byte) ([]string, error) {
+
+	var newResponse PromResponse
+
+	err := json.Unmarshal(response, &newResponse)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var values []string
+
+	// Retrieve all values from the array of results
+	for i := 0; i < len(newResponse.Data.Result); i++ {
+		var value = fmt.Sprintf("%v", newResponse.Data.Result[i].Value[1])
+		values = append(values, value)
+	}
+
+	return values, nil
 }

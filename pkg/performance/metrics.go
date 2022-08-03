@@ -1,6 +1,7 @@
 package performance
 
 import (
+	"strconv"
 	"testing"
 
 	"github.com/maistra/maistra-test-tool/pkg/util"
@@ -20,9 +21,29 @@ func TestXDSPushes(t *testing.T) {
 		t.Error(err)
 		t.FailNow()
 	}
-	util.Log.Info(xdsPushCount)
-	util.Log.Info(xdsPushTime)
-	util.Log.Info(" If xdsPushCount and xdsPushTime are equal - OK")
+
+	xdsPushCountValue, err := parseResponse([]byte(xdsPushCount))
+	if err != nil {
+		util.Log.Error(err)
+		t.Error(err)
+		t.FailNow()
+	}
+	xdsPushTimeValue, err := parseResponse([]byte(xdsPushTime))
+	if err != nil {
+		util.Log.Error(err)
+		t.Error(err)
+		t.FailNow()
+	}
+
+	for i := 0; i < len(xdsPushCountValue); i++ {
+		if xdsPushCountValue[i] != xdsPushTimeValue[i] {
+			util.Log.Error(err)
+			t.Errorf("xdsPushCount (%v) and xdsPushTime (%v) are not equal", xdsPushCountValue, xdsPushTimeValue)
+			t.FailNow()
+		} else {
+			util.Log.Info("OK: ", xdsPushCountValue[i], "/", xdsPushTimeValue[i], " correct XDS pushes")
+		}
+	}
 }
 
 func TestIstiodMem(t *testing.T) {
@@ -33,8 +54,38 @@ func TestIstiodMem(t *testing.T) {
 		t.Error(err)
 		t.FailNow()
 	}
-	util.Log.Info(istiodMem)
-	util.Log.Info(" If istiodMem is lower than ", istiodAcceptanceMem)
+
+	istiodMemValue, err := parseResponse([]byte(istiodMem))
+	if err != nil {
+		util.Log.Error(err)
+		t.Error(err)
+		t.FailNow()
+	}
+
+	for i := 0; i < len(istiodMemValue); i++ {
+
+		istiodMemValueInt, errConver1 := strconv.Atoi(istiodMemValue[i])
+		if errConver1 != nil {
+			util.Log.Error(err)
+			t.Error(err)
+			t.FailNow()
+		}
+		istiodMemValueIntMegaBytes := istiodMemValueInt / bytesToMegaBytes
+
+		istiodAcceptanceMemIntMegabytes, errConver2 := strconv.Atoi(istiodAcceptanceMem)
+		if errConver2 != nil {
+			util.Log.Error(err)
+			t.Error(err)
+			t.FailNow()
+		}
+
+		if istiodMemValueIntMegaBytes > istiodAcceptanceMemIntMegabytes {
+			t.Errorf("Istiod Memory Value is %v. Want something lower than %v", istiodMemValueIntMegaBytes, istiodAcceptanceMemIntMegabytes)
+			t.FailNow()
+		} else {
+			util.Log.Info("OK: ", istiodMemValueIntMegaBytes, " is lower than ", istiodAcceptanceMemIntMegabytes, " in MBs")
+		}
+	}
 }
 
 func TestIstiodCpu(t *testing.T) {
@@ -45,8 +96,38 @@ func TestIstiodCpu(t *testing.T) {
 		t.Error(err)
 		t.FailNow()
 	}
-	util.Log.Info(istiodCpu)
-	util.Log.Info(" If istiodCpu is lower than ", istiodAcceptanceCpu)
+
+	istiodCpuValue, err := parseResponse([]byte(istiodCpu))
+	if err != nil {
+		util.Log.Error(err)
+		t.Error(err)
+		t.FailNow()
+	}
+
+	for i := 0; i < len(istiodCpuValue); i++ {
+
+		istiodCpuValueFloat, errConver1 := strconv.ParseFloat(istiodCpuValue[0], 32)
+		if errConver1 != nil {
+			util.Log.Error(err)
+			t.Error(err)
+			t.FailNow()
+		}
+		istiodCpuValueFloatMilicores := istiodCpuValueFloat * coresToMilicores
+
+		istiodAcceptanceCpuFloatMilicores, errConver2 := strconv.ParseFloat(istiodAcceptanceCpu, 32)
+		if errConver2 != nil {
+			util.Log.Error(err)
+			t.Error(err)
+			t.FailNow()
+		}
+
+		if istiodCpuValueFloatMilicores > istiodAcceptanceCpuFloatMilicores {
+			t.Errorf("Istiod CPU Value is %v. Want something lower than %v", istiodCpuValueFloatMilicores, istiodAcceptanceCpuFloatMilicores)
+			t.FailNow()
+		} else {
+			util.Log.Info("OK: ", istiodCpuValueFloatMilicores, " is lower than ", istiodAcceptanceCpuFloatMilicores, " in Milicores")
+		}
+	}
 }
 
 func TestIstioProxiesMem(t *testing.T) {

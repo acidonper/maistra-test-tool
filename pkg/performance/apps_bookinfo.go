@@ -20,11 +20,6 @@ import (
 	"github.com/maistra/maistra-test-tool/pkg/util"
 )
 
-// Bookinfo includes app deployment namespace
-type Bookinfo struct {
-	Namespace string `json:"namespace,omitempty"`
-}
-
 func (b *Bookinfo) BookinfoInstall(mtls bool) {
 	util.Log.Info("Deploying Bookinfo in ", b.Namespace)
 	util.KubeApplySilent(b.Namespace, bookinfoYaml)

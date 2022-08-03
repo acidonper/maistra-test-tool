@@ -20,11 +20,6 @@ import (
 	"github.com/maistra/maistra-test-tool/pkg/util"
 )
 
-// Bookinfo includes app deployment namespace
-type JumpApp struct {
-	Namespace string `json:"namespace,omitempty"`
-}
-
 func (b *JumpApp) JumpappInstall() {
 	util.Log.Info("Deploying JumpAppin ", b.Namespace)
 	util.KubeApply(b.Namespace, jumpappYaml)

@@ -106,7 +106,7 @@ func TestIstiodCpu(t *testing.T) {
 
 	for i := 0; i < len(istiodCpuValue); i++ {
 
-		istiodCpuValueFloat, errConver1 := strconv.ParseFloat(istiodCpuValue[0], 32)
+		istiodCpuValueFloat, errConver1 := strconv.ParseFloat(istiodCpuValue[i], 32)
 		if errConver1 != nil {
 			util.Log.Error(err)
 			t.Error(err)

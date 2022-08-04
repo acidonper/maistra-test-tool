@@ -1,7 +1,6 @@
 package performance
 
 import (
-	"strconv"
 	"testing"
 
 	"github.com/maistra/maistra-test-tool/pkg/util"
@@ -38,7 +37,7 @@ func TestXDSPushes(t *testing.T) {
 	for i := 0; i < len(xdsPushCountValue); i++ {
 		if xdsPushCountValue[i] != xdsPushTimeValue[i] {
 			util.Log.Error(err)
-			t.Errorf("xdsPushCount (%v) and xdsPushTime (%v) are not equal", xdsPushCountValue, xdsPushTimeValue)
+			t.Errorf("xdsPushCount (%v) and xdsPushTime (%v) are not equal and some requests are higher than %s seconds", xdsPushCountValue, xdsPushTimeValue, xdsPushAcceptanceTime)
 			t.FailNow()
 		} else {
 			util.Log.Info("OK: ", xdsPushCountValue[i], "/", xdsPushTimeValue[i], " correct XDS pushes")
@@ -48,120 +47,52 @@ func TestXDSPushes(t *testing.T) {
 
 func TestIstiodMem(t *testing.T) {
 	util.Log.Info("** TEST: TestIstiodMem")
-	istiodMem, err := getMetricPrometheusOCP("istiod_mem", nil)
+
+	meshPods, err := getMeshProxies("istiod")
 	if err != nil {
 		util.Log.Error(err)
 		t.Error(err)
 		t.FailNow()
 	}
 
-	istiodMemValue, err := parseResponse([]byte(istiodMem))
-	if err != nil {
-		util.Log.Error(err)
-		t.Error(err)
-		t.FailNow()
-	}
-
-	for i := 0; i < len(istiodMemValue); i++ {
-
-		istiodMemValueInt, errConver1 := strconv.Atoi(istiodMemValue[i])
-		if errConver1 != nil {
-			util.Log.Error(err)
-			t.Error(err)
-			t.FailNow()
-		}
-		istiodMemValueIntMegaBytes := istiodMemValueInt / bytesToMegaBytes
-
-		istiodAcceptanceMemIntMegabytes, errConver2 := strconv.Atoi(istiodAcceptanceMem)
-		if errConver2 != nil {
+	for name, namespace := range meshPods {
+		prometheusAPIMapParams["istio-proxy-pod-name"] = name
+		prometheusAPIMapParams["istio-proxy-pod-ns"] = namespace
+		istiodProxyMem, err := getMetricPrometheusOCP("istio_proxies_mem_custom", prometheusAPIMapParams)
+		if err != nil {
 			util.Log.Error(err)
 			t.Error(err)
 			t.FailNow()
 		}
 
-		if istiodMemValueIntMegaBytes > istiodAcceptanceMemIntMegabytes {
-			t.Errorf("Istiod Memory Value is %v. Want something lower than %v", istiodMemValueIntMegaBytes, istiodAcceptanceMemIntMegabytes)
+		istiodMemValue, err := parseResponse([]byte(istiodProxyMem))
+		if err != nil {
+			util.Log.Error(err)
+			t.Error(err)
+			t.FailNow()
+		}
+
+		result, errComp := comparePodsMem(istiodMemValue[0], istiodAcceptanceMem)
+		if errComp != nil {
+			util.Log.Error(err)
+			t.Error(err)
 			t.FailNow()
 		} else {
-			util.Log.Info("OK: ", istiodMemValueIntMegaBytes, " is lower than ", istiodAcceptanceMemIntMegabytes, " in MBs")
+			util.Log.Info(result, " (pod/namespace: ", name, "/", namespace, ")")
 		}
 	}
 }
 
 func TestIstiodCpu(t *testing.T) {
 	util.Log.Info("** TEST: TestIstiodCpu")
-	istiodCpu, err := getMetricPrometheusOCP("istiod_cpu", nil)
+
+	meshPods, err := getMeshProxies("istiod")
 	if err != nil {
 		util.Log.Error(err)
 		t.Error(err)
 		t.FailNow()
 	}
 
-	istiodCpuValue, err := parseResponse([]byte(istiodCpu))
-	if err != nil {
-		util.Log.Error(err)
-		t.Error(err)
-		t.FailNow()
-	}
-
-	for i := 0; i < len(istiodCpuValue); i++ {
-
-		istiodCpuValueFloat, errConver1 := strconv.ParseFloat(istiodCpuValue[i], 32)
-		if errConver1 != nil {
-			util.Log.Error(err)
-			t.Error(err)
-			t.FailNow()
-		}
-		istiodCpuValueFloatMilicores := istiodCpuValueFloat * coresToMilicores
-
-		istiodAcceptanceCpuFloatMilicores, errConver2 := strconv.ParseFloat(istiodAcceptanceCpu, 32)
-		if errConver2 != nil {
-			util.Log.Error(err)
-			t.Error(err)
-			t.FailNow()
-		}
-
-		if istiodCpuValueFloatMilicores > istiodAcceptanceCpuFloatMilicores {
-			t.Errorf("Istiod CPU Value is %v. Want something lower than %v", istiodCpuValueFloatMilicores, istiodAcceptanceCpuFloatMilicores)
-			t.FailNow()
-		} else {
-			util.Log.Info("OK: ", istiodCpuValueFloatMilicores, " is lower than ", istiodAcceptanceCpuFloatMilicores, " in Milicores")
-		}
-	}
-}
-
-func TestIstioProxiesMem(t *testing.T) {
-	util.Log.Info("** TEST: TestIstioProxiesMem")
-
-	meshPods, err := getMeshProxies()
-	if err != nil {
-		util.Log.Error(err)
-		t.Error(err)
-		t.FailNow()
-	}
-	for name, namespace := range meshPods {
-		prometheusAPIMapParams["istio-proxy-pod-name"] = name
-		prometheusAPIMapParams["istio-proxy-pod-ns"] = namespace
-		istiodMem, err := getMetricPrometheusOCP("istio_proxies_mem_custom", prometheusAPIMapParams)
-		if err != nil {
-			util.Log.Error(err)
-			t.Error(err)
-			t.FailNow()
-		}
-		util.Log.Info(istiodMem)
-		util.Log.Info(" If IstioProxiesMem is lower than ", istioProxiesAcceptanceMem)
-	}
-}
-
-func TestIstioProxiesCpu(t *testing.T) {
-	util.Log.Info("** TEST: TestIstioProxiesCpu")
-
-	meshPods, err := getMeshProxies()
-	if err != nil {
-		util.Log.Error(err)
-		t.Error(err)
-		t.FailNow()
-	}
 	for name, namespace := range meshPods {
 		prometheusAPIMapParams["istio-proxy-pod-name"] = name
 		prometheusAPIMapParams["istio-proxy-pod-ns"] = namespace
@@ -171,20 +102,111 @@ func TestIstioProxiesCpu(t *testing.T) {
 			t.Error(err)
 			t.FailNow()
 		}
-		util.Log.Info(istiodCpu)
-		util.Log.Info(" If istioProxiesCpu is lower than ", istioProxiesAcceptanceCpu)
+
+		istiodCpuValue, err := parseResponse([]byte(istiodCpu))
+		if err != nil {
+			util.Log.Error(err)
+			t.Error(err)
+			t.FailNow()
+		}
+
+		result, errComp := comparePodsCpu(istiodCpuValue[0], istiodAcceptanceCpu)
+		if errComp != nil {
+			util.Log.Error(err)
+			t.Error(err)
+			t.FailNow()
+		} else {
+			util.Log.Info(result, " (pod/namespace: ", name, "/", namespace, ")")
+		}
 	}
 }
 
-func TestIstioIngressProxiesMem(t *testing.T) {
-	util.Log.Info("** TEST: TestIstioIngressProxiesMem")
+func TestIstioProxiesMem(t *testing.T) {
+	util.Log.Info("** TEST: TestIstioProxiesMem")
 
-	meshPods, err := getMeshIngressProxies()
+	meshPods, err := getMeshProxies("proxy")
 	if err != nil {
 		util.Log.Error(err)
 		t.Error(err)
 		t.FailNow()
 	}
+	for name, namespace := range meshPods {
+		prometheusAPIMapParams["istio-proxy-pod-name"] = name
+		prometheusAPIMapParams["istio-proxy-pod-ns"] = namespace
+		istioProxyMem, err := getMetricPrometheusOCP("istio_proxies_mem_custom", prometheusAPIMapParams)
+		if err != nil {
+			util.Log.Error(err)
+			t.Error(err)
+			t.FailNow()
+		}
+
+		istioProxyMemValue, err := parseResponse([]byte(istioProxyMem))
+		if err != nil {
+			util.Log.Error(err)
+			t.Error(err)
+			t.FailNow()
+		}
+
+		result, errComp := comparePodsMem(istioProxyMemValue[0], istioProxiesAcceptanceMem)
+		if errComp != nil {
+			util.Log.Error(err)
+			t.Error(err)
+			t.FailNow()
+		} else {
+			util.Log.Info(result, " (pod/namespace: ", name, "/", namespace, ")")
+		}
+	}
+	util.Log.Info("OK: Istio proxies memory are lower than ", istioProxiesAcceptanceMem, " in Megabytes")
+}
+
+func TestIstioProxiesCpu(t *testing.T) {
+	util.Log.Info("** TEST: TestIstioProxiesCpu")
+
+	meshPods, err := getMeshProxies("proxy")
+	if err != nil {
+		util.Log.Error(err)
+		t.Error(err)
+		t.FailNow()
+	}
+	for name, namespace := range meshPods {
+		prometheusAPIMapParams["istio-proxy-pod-name"] = name
+		prometheusAPIMapParams["istio-proxy-pod-ns"] = namespace
+		istioProxyCpu, err := getMetricPrometheusOCP("istio_proxies_cpu_custom", prometheusAPIMapParams)
+		if err != nil {
+			util.Log.Error(err)
+			t.Error(err)
+			t.FailNow()
+		}
+
+		istioProxyCpuValue, err := parseResponse([]byte(istioProxyCpu))
+		if err != nil {
+			util.Log.Error(err)
+			t.Error(err)
+			t.FailNow()
+		}
+
+		result, errComp := comparePodsCpu(istioProxyCpuValue[0], istioProxiesAcceptanceCpu)
+		if errComp != nil {
+			util.Log.Error(err)
+			t.Error(err)
+			t.FailNow()
+		} else {
+			util.Log.Info(result, " (pod/namespace: ", name, "/", namespace, ")")
+		}
+	}
+	util.Log.Info("OK: Istio proxies CPU are lower than ", istioProxiesAcceptanceCpu, " in CPUs")
+}
+
+func TestIstioIngressMem(t *testing.T) {
+	util.Log.Info("** TEST: TestIstioIngressMem")
+
+	meshPods, err := getMeshProxies("ingress")
+	if err != nil {
+		util.Log.Error(err)
+		t.Error(err)
+		t.FailNow()
+	}
+
 	for name, namespace := range meshPods {
 		prometheusAPIMapParams["istio-proxy-pod-name"] = name
 		prometheusAPIMapParams["istio-proxy-pod-ns"] = namespace
@@ -194,15 +216,29 @@ func TestIstioIngressProxiesMem(t *testing.T) {
 			t.Error(err)
 			t.FailNow()
 		}
-		util.Log.Info(istioIngressProxyMem)
-		util.Log.Info(" If istioIngressProxiesAcceptanceMem is lower than ", istioIngressProxiesAcceptanceMem)
+
+		istioIngressMemValue, err := parseResponse([]byte(istioIngressProxyMem))
+		if err != nil {
+			util.Log.Error(err)
+			t.Error(err)
+			t.FailNow()
+		}
+
+		result, errComp := comparePodsMem(istioIngressMemValue[0], istioIngressAcceptanceMem)
+		if errComp != nil {
+			util.Log.Error(err)
+			t.Error(err)
+			t.FailNow()
+		} else {
+			util.Log.Info(result, " (pod/namespace: ", name, "/", namespace, ")")
+		}
 	}
 }
 
-func TestIstioIngressProxiesCpu(t *testing.T) {
-	util.Log.Info("** TEST: TestIstioIngressProxiesCpu")
+func TestIstioIngressCpu(t *testing.T) {
+	util.Log.Info("** TEST: TestIstioIngressCpu")
 
-	meshPods, err := getMeshIngressProxies()
+	meshPods, err := getMeshProxies("ingress")
 	if err != nil {
 		util.Log.Error(err)
 		t.Error(err)
@@ -211,21 +247,35 @@ func TestIstioIngressProxiesCpu(t *testing.T) {
 	for name, namespace := range meshPods {
 		prometheusAPIMapParams["istio-proxy-pod-name"] = name
 		prometheusAPIMapParams["istio-proxy-pod-ns"] = namespace
-		istioIngressProxyCpu, err := getMetricPrometheusOCP("istio_proxies_cpu_custom", prometheusAPIMapParams)
+		istioIngressCpu, err := getMetricPrometheusOCP("istio_proxies_cpu_custom", prometheusAPIMapParams)
 		if err != nil {
 			util.Log.Error(err)
 			t.Error(err)
 			t.FailNow()
 		}
-		util.Log.Info(istioIngressProxyCpu)
-		util.Log.Info(" If istioIngressProxiesAcceptanceCpu is lower than ", istioIngressProxiesAcceptanceCpu)
+
+		istioIngressCpuValue, err := parseResponse([]byte(istioIngressCpu))
+		if err != nil {
+			util.Log.Error(err)
+			t.Error(err)
+			t.FailNow()
+		}
+
+		result, errComp := comparePodsCpu(istioIngressCpuValue[0], istioIngressAcceptanceCpu)
+		if errComp != nil {
+			util.Log.Error(err)
+			t.Error(err)
+			t.FailNow()
+		} else {
+			util.Log.Info(result, " (pod/namespace: ", name, "/", namespace, ")")
+		}
 	}
 }
 
-func TestIstioEgressProxiesMem(t *testing.T) {
-	util.Log.Info("** TEST: TestIstioEgressProxiesMem")
+func TestIstioEgressMem(t *testing.T) {
+	util.Log.Info("** TEST: TestIstioEgressMem")
 
-	meshPods, err := getMeshEgressProxies()
+	meshPods, err := getMeshProxies("egress")
 	if err != nil {
 		util.Log.Error(err)
 		t.Error(err)
@@ -240,15 +290,29 @@ func TestIstioEgressProxiesMem(t *testing.T) {
 			t.Error(err)
 			t.FailNow()
 		}
-		util.Log.Info(istioEgressProxyMem)
-		util.Log.Info(" If istioEgressProxiesAcceptanceMem is lower than ", istioEgressProxiesAcceptanceMem)
+
+		istioEgressMemValue, err := parseResponse([]byte(istioEgressProxyMem))
+		if err != nil {
+			util.Log.Error(err)
+			t.Error(err)
+			t.FailNow()
+		}
+
+		result, errComp := comparePodsMem(istioEgressMemValue[0], istioEgressAcceptanceMem)
+		if errComp != nil {
+			util.Log.Error(err)
+			t.Error(err)
+			t.FailNow()
+		} else {
+			util.Log.Info(result, " (pod/namespace: ", name, "/", namespace, ")")
+		}
 	}
 }
 
-func TestIstioEgressProxiesCpu(t *testing.T) {
-	util.Log.Info("** TEST: TestIstioEgressProxiesCpu")
+func TestIstioEgressCpu(t *testing.T) {
+	util.Log.Info("** TEST: TestIstioEgressCpu")
 
-	meshPods, err := getMeshEgressProxies()
+	meshPods, err := getMeshProxies("egress")
 	if err != nil {
 		util.Log.Error(err)
 		t.Error(err)
@@ -263,7 +327,21 @@ func TestIstioEgressProxiesCpu(t *testing.T) {
 			t.Error(err)
 			t.FailNow()
 		}
-		util.Log.Info(istioEgressProxyCpu)
-		util.Log.Info(" If istioEgressProxiesAcceptanceCpu is lower than ", istioEgressProxiesAcceptanceCpu)
+
+		istioEgressCpuValue, err := parseResponse([]byte(istioEgressProxyCpu))
+		if err != nil {
+			util.Log.Error(err)
+			t.Error(err)
+			t.FailNow()
+		}
+
+		result, errComp := comparePodsCpu(istioEgressCpuValue[0], istioEgressAcceptanceCpu)
+		if errComp != nil {
+			util.Log.Error(err)
+			t.Error(err)
+			t.FailNow()
+		} else {
+			util.Log.Info(result, " (pod/namespace: ", name, "/", namespace, ")")
+		}
 	}
 }

@@ -63,10 +63,10 @@ var performanceCases = []testing.InternalTest{
 		Name: "A6",
 		F:    performance.CreateTestDPObjects,
 	},
-	// // testing.InternalTest{
-	// // 	Name: "A7",
-	// // 	F:    performance.generateLoad,  TODO
-	// // },
+	// testing.InternalTest{
+	// 	Name: "A7",
+	// 	F:    performance.generateLoad,  TODO
+	// },
 	testing.InternalTest{
 		Name: "DP1.1",
 		F:    performance.TestIstioProxiesMem,
@@ -77,24 +77,24 @@ var performanceCases = []testing.InternalTest{
 	},
 	testing.InternalTest{
 		Name: "DP2.1",
-		F:    performance.TestIstioIngressProxiesMem,
+		F:    performance.TestIstioIngressMem,
 	},
 	testing.InternalTest{
 		Name: "DP2.2",
-		F:    performance.TestIstioIngressProxiesCpu,
+		F:    performance.TestIstioIngressCpu,
 	},
 	testing.InternalTest{
 		Name: "DP3.1",
-		F:    performance.TestIstioEgressProxiesMem,
+		F:    performance.TestIstioEgressMem,
 	},
 	testing.InternalTest{
 		Name: "DP3.2",
-		F:    performance.TestIstioEgressProxiesCpu,
+		F:    performance.TestIstioEgressCpu,
 	},
-	// // testing.InternalTest{
-	// // 	Name: "A8",
-	// // 	F:    performance.analyseLoadOutput,  TODO
-	// // },
+	// testing.InternalTest{
+	// 	Name: "A8",
+	// 	F:    performance.analyseLoadOutput,  TODO
+	// },
 	testing.InternalTest{
 		Name: "A9",
 		F:    performance.DeleteTestDPObjects,

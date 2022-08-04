@@ -34,7 +34,7 @@ oc login -u [user] -p [token] --server=[OCP API server]
 
 * A main test is in the `performance/tests` directory. All test cases are in the `test_cases.go` and are mapped to the implementations in the `pkg` directory.
 * Optionally to run all the test cases customizing the SMCP namespace and the SMCP name: A user can update the expected values in the `performance/tests/test.env`.
-* To run all the test cases: `cd tests; go test -timeout 2h -v`.
+* To run all the test cases: `cd performance/tests; go test -timeout 2h -v`.
 
 NOTE: The `-timeout` flag is necessary when running all tests or several major test cases. Otherwise, a `go test` command falls into panic after 10 minutes.
 

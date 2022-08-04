@@ -47,8 +47,35 @@ func getRouteHost(route string, namespace string) (string, error) {
 	return msg, nil
 }
 
-func getMeshPods() ([]string, error) {
+func getMeshProxyPods() ([]string, error) {
 	meshPods, err := util.ShellSilent(`oc get pods -A -l istio.io/rev=%s --field-selector=status.phase==Running -o go-template='{{range .items}}{{.metadata.name}}/{{.metadata.namespace}},{{end}}'`, smcpName)
+	if err != nil {
+		return nil, err
+	}
+	podsList := strings.Split(meshPods, ",")
+	return podsList, nil
+}
+
+func getMeshIstiodPods() ([]string, error) {
+	meshPods, err := util.ShellSilent(`oc get pods -l app=istiod -l istio.io/rev=%s -n %s --field-selector=status.phase==Running -o go-template='{{range .items}}{{.metadata.name}}/{{.metadata.namespace}},{{end}}'`, smcpName, meshNamespace)
+	if err != nil {
+		return nil, err
+	}
+	podsList := strings.Split(meshPods, ",")
+	return podsList, nil
+}
+
+func getMeshIngressPods() ([]string, error) {
+	meshPods, err := util.ShellSilent(`oc get pods -A -l maistra-control-plane=%s -l istio=ingressgateway --field-selector=status.phase==Running -o go-template='{{range .items}}{{.metadata.name}}/{{.metadata.namespace}},{{end}}'`, meshNamespace)
+	if err != nil {
+		return nil, err
+	}
+	podsList := strings.Split(meshPods, ",")
+	return podsList, nil
+}
+
+func getMeshEgressPods() ([]string, error) {
+	meshPods, err := util.ShellSilent(`oc get pods -A -l maistra-control-plane=%s -l istio=egressgateway --field-selector=status.phase==Running -o go-template='{{range .items}}{{.metadata.name}}/{{.metadata.namespace}},{{end}}'`, meshNamespace)
 	if err != nil {
 		return nil, err
 	}
@@ -223,17 +250,6 @@ func deleteAppBundle(app string, number int, prefix string) error {
 		if err != nil {
 			return err
 		}
-		// Type booking
-		// if app == "bookinfo" {
-		// 	bookinfo := apps.Bookinfo{Namespace: nsName}
-		// 	bookinfo.BookinfoInstall(false)
-		// } else if app == "jumpapp" {
-		// 	jumpapp := apps.JumpApp{Namespace: nsName}
-		// 	jumpapp.JumpappInstall()
-		// } else {
-		// 	return fmt.Errorf("application " + app + " not defined")
-		// }
-
 	}
 	return nil
 }
@@ -416,55 +432,34 @@ func getMetricPrometheusOCP(query string, params map[string]string) (string, err
 	return resp, nil
 }
 
-func getMeshProxies() (map[string]string, error) {
+func getMeshProxies(role string) (map[string]string, error) {
+
+	var podsList []string
+	var err error
+
+	// Get pods depending on type of role
+	switch role {
+	case "proxy":
+		podsList, err = getMeshProxyPods()
+	case "istiod":
+		podsList, err = getMeshIstiodPods()
+	case "ingress":
+		podsList, err = getMeshIngressPods()
+	case "egress":
+		podsList, err = getMeshEgressPods()
+	default:
+		err = fmt.Errorf("mesh pod role not defined (Supported: proxy, istiod, ingress or egress)")
+	}
+
 	// Find proxies in the mesh
-	podsList, err := getMeshPods()
 	if err != nil {
 		return nil, err
 	}
 
-	// generate the respective map excluding control plane namespace proxies
+	// generate the respective map
 	pods := make(map[string]string)
 	for _, s := range podsList {
-		if !strings.Contains(s, meshNamespace) && s != "" {
-			podMetadata := strings.Split(s, "/")
-			pods[podMetadata[0]] = podMetadata[1]
-		}
-	}
-
-	return pods, nil
-}
-
-func getMeshIngressProxies() (map[string]string, error) {
-	// Find proxies in the mesh
-	podsList, err := getMeshPods()
-	if err != nil {
-		return nil, err
-	}
-
-	// generate the respective map filtering ingress gateways
-	pods := make(map[string]string)
-	for _, s := range podsList {
-		if strings.Contains(s, "istio-ingressgateway-") && s != "" {
-			podMetadata := strings.Split(s, "/")
-			pods[podMetadata[0]] = podMetadata[1]
-		}
-	}
-
-	return pods, nil
-}
-
-func getMeshEgressProxies() (map[string]string, error) {
-	// Find proxies in the mesh
-	podsList, err := getMeshPods()
-	if err != nil {
-		return nil, err
-	}
-
-	// generate the respective map filtering egress gateways
-	pods := make(map[string]string)
-	for _, s := range podsList {
-		if strings.Contains(s, "istio-egressgateway-") && s != "" {
+		if s != "" {
 			podMetadata := strings.Split(s, "/")
 			pods[podMetadata[0]] = podMetadata[1]
 		}
@@ -548,4 +543,48 @@ func parseResponse(response []byte) ([]string, error) {
 	}
 
 	return values, nil
+}
+
+func comparePodsMem(value1 string, value2 string) (string, error) {
+
+	value1Int, errConver1 := strconv.Atoi(value1)
+	if errConver1 != nil {
+		return "", errConver1
+	}
+	value1IntMegaBytes := value1Int / bytesToMegaBytes
+
+	value2IntMegabytes, errConver2 := strconv.Atoi(value2)
+	if errConver2 != nil {
+		return "", errConver1
+	}
+
+	if value1IntMegaBytes > value2IntMegabytes {
+		msg := fmt.Errorf("memory value is %v. Want something lower than %v", value1IntMegaBytes, value2IntMegabytes)
+		return "", msg
+	} else {
+		msg := ("OK: Memory " + strconv.Itoa(value1IntMegaBytes) + " is lower than " + strconv.Itoa(value2IntMegabytes) + " in MBs")
+		return msg, nil
+	}
+}
+
+func comparePodsCpu(value1 string, value2 string) (string, error) {
+
+	value1Float, errConver1 := strconv.ParseFloat(value1, 32)
+	if errConver1 != nil {
+		return "", errConver1
+	}
+	value1FloatMilicores := value1Float * coresToMilicores
+
+	value2FloatMilicores, errConver2 := strconv.ParseFloat(value2, 32)
+	if errConver2 != nil {
+		return "", errConver1
+	}
+
+	if value1FloatMilicores > value2FloatMilicores {
+		msg := fmt.Errorf("cpu value is %v. Want something lower than %v", value1FloatMilicores, value2FloatMilicores)
+		return "", msg
+	} else {
+		msg := ("OK: CPU " + fmt.Sprintf("%f", value1FloatMilicores) + " is lower than " + fmt.Sprintf("%f", value2FloatMilicores) + " in Milicores")
+		return msg, nil
+	}
 }

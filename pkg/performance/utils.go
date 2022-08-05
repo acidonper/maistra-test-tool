@@ -47,6 +47,16 @@ func getRouteHost(route string, namespace string) (string, error) {
 	return msg, nil
 }
 
+func getOCPAppsDomain() (string, error) {
+	util.Log.Debug("Getting Openshift Apps Domain")
+	exampleRoute, err := getRouteHost("console", "openshift-console")
+	if err != nil {
+		return "", err
+	}
+	domain := strings.ReplaceAll(exampleRoute, "console-openshift-console.", "")
+	return domain, nil
+}
+
 func getMeshProxyPods() ([]string, error) {
 	meshPods, err := util.ShellSilent(`oc get pods -A -l istio.io/rev=%s --field-selector=status.phase==Running -o go-template='{{range .items}}{{.metadata.name}}/{{.metadata.namespace}},{{end}}'`, smcpName)
 	if err != nil {
@@ -240,11 +250,22 @@ func createNSBundle(min int, max int, prefix string) error {
 	return nil
 }
 
-func deleteAppBundle(app string, number int, prefix string) error {
+func deleteAppBundle(app string, number int) error {
 	util.Log.Info("Deleting ", app, " applications: ", strconv.Itoa(number))
 
 	// Creating the respective number of apps
 	for i := 1; i <= number; i++ {
+		prefix := ""
+
+		switch app {
+		case "bookinfo":
+			prefix = bookinfoNSPrefix
+		case "jumpapp":
+			prefix = jumpappNSPrefix
+		default:
+			return fmt.Errorf("application " + app + " not supported (bookinfo or jumpapp)")
+		}
+
 		nsName := prefix + strconv.Itoa(i)
 		err := deleteNSMesh(nsName)
 		if err != nil {
@@ -254,27 +275,39 @@ func deleteAppBundle(app string, number int, prefix string) error {
 	return nil
 }
 
-func createAppBundle(app string, number int, prefix string) error {
+func createAppBundle(app string, number int) error {
 	util.Log.Info("Deploying ", app, " applications: ", strconv.Itoa(number))
 
 	// Creating the respective number of apps
 	for i := 1; i <= number; i++ {
-		nsName := prefix + strconv.Itoa(i)
-		err := createNSMesh(nsName)
-		if err != nil {
-			return err
-		}
-		// Type booking
-		if app == "bookinfo" {
-			bookinfo := Bookinfo{Namespace: nsName}
+
+		nsName := ""
+
+		switch app {
+		case "bookinfo":
+			nsName = bookinfoNSPrefix + strconv.Itoa(i)
+			err := createNSMesh(nsName)
+			if err != nil {
+				return err
+			}
+			ocpDomain, err := getOCPAppsDomain()
+			if err != nil {
+				return err
+			}
+			host := "bookinfo." + nsName + "." + ocpDomain
+			bookinfo := Bookinfo{Name: nsName, Namespace: nsName, Host: host}
 			bookinfo.BookinfoInstall(false)
-		} else if app == "jumpapp" {
+		case "jumpapp":
+			nsName = bookinfoNSPrefix + strconv.Itoa(i)
+			err := createNSMesh(nsName)
+			if err != nil {
+				return err
+			}
 			jumpapp := JumpApp{Namespace: nsName}
 			jumpapp.JumpappInstall()
-		} else {
-			return fmt.Errorf("application " + app + " not defined")
+		default:
+			return fmt.Errorf("application " + app + " not supported (bookinfo or jumpapp)")
 		}
-
 	}
 	return nil
 }
@@ -587,4 +620,43 @@ func comparePodsCpu(value1 string, value2 string) (string, error) {
 		msg := ("OK: CPU " + fmt.Sprintf("%f", value1FloatMilicores) + " is lower than " + fmt.Sprintf("%f", value2FloatMilicores) + " in Milicores")
 		return msg, nil
 	}
+}
+
+func execK6SyncTest(vus string, duration string, url string, test string, file string) (string, error) {
+	util.Log.Info("Executing test ", test, " in ", url, " (vus/duration: ", vus, "/", duration, "s)")
+	msg, err := util.ShellSilent(`k6 run --vus %s --duration %ss --env TEST_URL="%s" --summary-export %s %s/k6/%s`, vus, duration, url, file, basedir, test)
+	if err != nil {
+		return "", err
+	}
+	return msg, nil
+}
+
+func generateSimpleTrafficLoadK6(protocol string, app string) (string, error) {
+
+	var pid string
+	var url string
+	var err error
+
+	if app == "bookinfo" && protocol == "http" {
+		appName := bookinfoNSPrefix + "1"
+		reportFile := "/tmp/" + appName + ".json"
+		routeHost, errRoute := getRouteHost(appName, meshNamespace)
+		if errRoute != nil {
+			return "", fmt.Errorf("route %s not found in namespace %s", appName, meshNamespace)
+		} else {
+			url = "https://" + routeHost + "/productpage"
+		}
+		_, err = execK6SyncTest(testVUs, testDuration, url, "http-basic.js", reportFile)
+	} else {
+		errorMsg := fmt.Errorf("application %s and protocol %s not supported", app, protocol)
+		return "", errorMsg
+	}
+
+	if err != nil {
+		return "", err
+	}
+
+	util.Log.Info("TODO: Implement k6 reports parse to obtain AVG p95 SLI and compare with the respective acceptance value ", reqAvg95pAcceptanceTime)
+
+	return pid, nil
 }

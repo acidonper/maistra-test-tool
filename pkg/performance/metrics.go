@@ -147,13 +147,17 @@ func TestIstioProxiesMem(t *testing.T) {
 			t.FailNow()
 		}
 
-		result, errComp := comparePodsMem(istioProxyMemValue[0], istioProxiesAcceptanceMem)
-		if errComp != nil {
-			util.Log.Error(err)
-			t.Error(err)
-			t.FailNow()
+		if len(istioProxyMemValue) > 0 {
+			result, errComp := comparePodsMem(istioProxyMemValue[0], istioProxiesAcceptanceMem)
+			if errComp != nil {
+				util.Log.Error(err)
+				t.Error(err)
+				t.FailNow()
+			} else {
+				util.Log.Info(result, " (pod/namespace: ", name, "/", namespace, ")")
+			}
 		} else {
-			util.Log.Info(result, " (pod/namespace: ", name, "/", namespace, ")")
+			util.Log.Info("WARNING: Memory metric for (pod/namespace: ", name, "/", namespace, ") not found")
 		}
 	}
 	util.Log.Info("OK: Istio proxies memory are lower than ", istioProxiesAcceptanceMem, " in Megabytes")
@@ -185,13 +189,17 @@ func TestIstioProxiesCpu(t *testing.T) {
 			t.FailNow()
 		}
 
-		result, errComp := comparePodsCpu(istioProxyCpuValue[0], istioProxiesAcceptanceCpu)
-		if errComp != nil {
-			util.Log.Error(err)
-			t.Error(err)
-			t.FailNow()
+		if len(istioProxyCpuValue) > 0 {
+			result, errComp := comparePodsCpu(istioProxyCpuValue[0], istioProxiesAcceptanceCpu)
+			if errComp != nil {
+				util.Log.Error(err)
+				t.Error(err)
+				t.FailNow()
+			} else {
+				util.Log.Info(result, " (pod/namespace: ", name, "/", namespace, ")")
+			}
 		} else {
-			util.Log.Info(result, " (pod/namespace: ", name, "/", namespace, ")")
+			util.Log.Info("WARNING: CPU metric for (pod/namespace: ", name, "/", namespace, ") not found")
 		}
 	}
 	util.Log.Info("OK: Istio proxies CPU are lower than ", istioProxiesAcceptanceCpu, " in CPUs")

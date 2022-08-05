@@ -1,17 +1,3 @@
-// Copyright 2021 Red Hat, Inc.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package performance
 
 import (
@@ -27,6 +13,8 @@ var (
 	nsCountBundle string = util.Getenv("NSCOUNTBUNDLE", "10,15,20")
 	testCPApps    string = util.Getenv("TESTCPAPPS", "2")
 	testDPApps    string = util.Getenv("TESTDPAPPS", "5")
+	testVUs       string = util.Getenv("TESTVUS", "1")
+	testDuration  string = util.Getenv("TESTDURATION", "30")
 )
 
 var (
@@ -40,6 +28,7 @@ var (
 	istioIngressAcceptanceCpu string = util.Getenv("ISTIOINGRESPROXIESACCEPTANCECPU", "1000")
 	istioEgressAcceptanceMem  string = util.Getenv("ISTIOEGRESPROXIESACCEPTANCEMEM", "1024")
 	istioEgressAcceptanceCpu  string = util.Getenv("ISTIOEGRESPROXIESACCEPTANCECPU", "1000")
+	reqAvg95pAcceptanceTime   string = util.Getenv("REQAVG95PACCEPTANCETIME", "500")
 )
 
 var (
@@ -81,36 +70,7 @@ var (
 
 	jumpappYaml       = fmt.Sprintf("%s/jumpapp/jumpapp.yaml", basedir)
 	jumpappNetworking = fmt.Sprintf("%s/jumpapp/jumpapp-sm.yaml", basedir)
+
+	bookinfoNSPrefix = "bookinfo-"
+	jumpappNSPrefix  = "jumpapp-"
 )
-
-type Bookinfo struct {
-	Namespace string `json:"namespace,omitempty"`
-}
-
-type JumpApp struct {
-	Namespace string `json:"namespace,omitempty"`
-}
-
-type PromResponse struct {
-	Status string `json:"status"`
-	Data   struct {
-		ResultType string `json:"resultType"`
-		Result     []struct {
-			Metric struct {
-				Name                 string `json:"__name__"`
-				App                  string `json:"app"`
-				Instance             string `json:"instance"`
-				Istio                string `json:"istio"`
-				IstioIoRev           string `json:"istio_io_rev"`
-				Job                  string `json:"job"`
-				KubernetesNamespace  string `json:"kubernetes_namespace"`
-				KubernetesPodName    string `json:"kubernetes_pod_name"`
-				Le                   string `json:"le"`
-				MaistraControlPlane  string `json:"maistra_control_plane"`
-				PodTemplateHash      string `json:"pod_template_hash"`
-				SidecarIstioIoInject string `json:"sidecar_istio_io_inject"`
-			} `json:"metric"`
-			Value []interface{} `json:"value"`
-		} `json:"result"`
-	} `json:"data"`
-}

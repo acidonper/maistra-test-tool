@@ -10,7 +10,7 @@ import (
 func CreateTestCPObjects(t *testing.T) {
 	util.Log.Info("** TEST: CreateTestCPObjects")
 	apps, _ := strconv.Atoi(testCPApps)
-	err := createAppBundle("bookinfo", apps, "bookinfo-")
+	err := createAppBundle("bookinfo", apps)
 	if err != nil {
 		util.Log.Error(err)
 		t.Error(err)
@@ -21,7 +21,7 @@ func CreateTestCPObjects(t *testing.T) {
 func DeleteTestCPObjects(t *testing.T) {
 	util.Log.Info("** TEST: DeleteTestCPObjects")
 	apps, _ := strconv.Atoi(testCPApps)
-	err := deleteAppBundle("bookinfo", apps, "bookinfo-")
+	err := deleteAppBundle("bookinfo", apps)
 	if err != nil {
 		util.Log.Error(err)
 		t.Error(err)
@@ -32,7 +32,7 @@ func DeleteTestCPObjects(t *testing.T) {
 func CreateTestDPObjects(t *testing.T) {
 	util.Log.Info("** TEST: CreateTestDPObjects")
 	apps, _ := strconv.Atoi(testDPApps)
-	err := createAppBundle("bookinfo", apps, "bookinfo-")
+	err := createAppBundle("bookinfo", apps)
 	if err != nil {
 		util.Log.Error(err)
 		t.Error(err)
@@ -43,7 +43,7 @@ func CreateTestDPObjects(t *testing.T) {
 func DeleteTestDPObjects(t *testing.T) {
 	util.Log.Info("** TEST: DeleteTestDPObjects")
 	apps, _ := strconv.Atoi(testDPApps)
-	err := deleteAppBundle("bookinfo", apps, "bookinfo-")
+	err := deleteAppBundle("bookinfo", apps)
 	if err != nil {
 		util.Log.Error(err)
 		t.Error(err)

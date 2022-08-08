@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -580,19 +581,6 @@ func parsePromResponse(response []byte) ([]string, error) {
 	return values, nil
 }
 
-func parseK6Response(response []byte) (K6Response, error) {
-
-	var newResponse K6Response
-
-	err := json.Unmarshal(response, &newResponse)
-
-	if err != nil {
-		return K6Response{}, err
-	}
-
-	return newResponse, nil
-}
-
 func comparePodsMem(value1 string, value2 string) (string, error) {
 
 	value1Int, errConver1 := strconv.Atoi(value1)
@@ -662,6 +650,23 @@ func generateSimpleTrafficLoadK6(protocol string, app string) (string, error) {
 			url = "https://" + routeHost + "/productpage"
 		}
 		_, err = execK6SyncTest(testVUs, testDuration, url, "http-basic.js", reportFile)
+
+		dat, err := os.ReadFile(reportFile)
+		if err != nil {
+			return "", err
+		}
+
+		res, err := parseK6Response(dat)
+		if err != nil {
+			return "", err
+		}
+
+		if res.Metrics.Checks.Fails > 0 {
+			return "", fmt.Errorf("There were %v fails in the tests", res.Metrics.Checks.Fails)
+		} else {
+			pid = fmt.Sprintf("%f", res.Metrics.HTTPReqReceiving.P95)
+		}
+
 	} else {
 		errorMsg := fmt.Errorf("application %s and protocol %s not supported", app, protocol)
 		return "", errorMsg
@@ -671,7 +676,18 @@ func generateSimpleTrafficLoadK6(protocol string, app string) (string, error) {
 		return "", err
 	}
 
-	util.Log.Info("TODO: Implement k6 reports parse to obtain AVG p95 SLI and compare with the respective acceptance value ", reqAvg95pAcceptanceTime)
-
 	return pid, nil
+}
+
+func parseK6Response(response []byte) (K6Response, error) {
+
+	var newResponse K6Response
+
+	err := json.Unmarshal(response, &newResponse)
+
+	if err != nil {
+		return K6Response{}, err
+	}
+
+	return newResponse, nil
 }

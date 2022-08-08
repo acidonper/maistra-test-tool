@@ -559,7 +559,7 @@ func CheckPodRunning(n, name string) error {
 	return nil
 }
 
-func parseResponse(response []byte) ([]string, error) {
+func parsePromResponse(response []byte) ([]string, error) {
 
 	var newResponse PromResponse
 
@@ -578,6 +578,19 @@ func parseResponse(response []byte) ([]string, error) {
 	}
 
 	return values, nil
+}
+
+func parseK6Response(response []byte) (K6Response, error) {
+
+	var newResponse K6Response
+
+	err := json.Unmarshal(response, &newResponse)
+
+	if err != nil {
+		return K6Response{}, err
+	}
+
+	return newResponse, nil
 }
 
 func comparePodsMem(value1 string, value2 string) (string, error) {

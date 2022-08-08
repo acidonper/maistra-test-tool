@@ -10,39 +10,6 @@ import (
 	"github.com/maistra/maistra-test-tool/pkg/util"
 )
 
-func arrayPositionFind(a []string, x string) int {
-	for i, n := range a {
-		if x == n || "["+x == n || x+"]" == n {
-			return i
-		}
-	}
-	return -1
-}
-
-func deleteNSBundle(min int, max int) error {
-	util.Log.Info("Deleting namespaces from ", min, " to ", max)
-	for i := min; i < max; i++ {
-		nsName := appNSPrefix + strconv.Itoa(i)
-		err := delNamespaceMesh(nsName)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func createNSBundle(min int, max int) error {
-	util.Log.Info("Creating namespaces from ", min, " to ", max)
-	for i := min; i < max; i++ {
-		nsName := appNSPrefix + strconv.Itoa(i)
-		err := createNamespaceMesh(nsName)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func testNamespaceAdditionTime(index int, acceptanceTime int) error {
 	// Convert second to milisecond
 	acceptanceTimeMS := acceptanceTime * 1000
@@ -57,7 +24,7 @@ func testNamespaceAdditionTime(index int, acceptanceTime int) error {
 
 	// Measure namespace addition to the mesh time
 	startT := time.Now()
-	errAddNS := addNamespaceMesh(nsName)
+	errAddNS := addNSToMesh(nsName)
 	if errAddNS != nil {
 		return err
 	}
@@ -89,13 +56,13 @@ func TestNSAdditionTime(t *testing.T) {
 		// Create required namespaces taking into account previous namespaces creation
 		if i > 0 {
 			tmp, _ := strconv.Atoi(nsCounts[i-1])
-			err := createNSBundle(tmp, count)
+			err := createNSBundle(tmp, count, appNSPrefix)
 			if err != nil {
 				t.Error(err.Error())
 				break
 			}
 		} else {
-			err := createNSBundle(0, count)
+			err := createNSBundle(0, count, appNSPrefix)
 			if err != nil {
 				t.Error(err.Error())
 				break
@@ -127,14 +94,14 @@ func TestNSAdditionTimeClean(t *testing.T) {
 	// clean namespaces
 	util.Log.Info("Cleaning up TestNSAdditionTime objects")
 	max, _ := strconv.Atoi(nsCounts[len(nsCounts)-1])
-	err := deleteNSBundle(0, max)
+	err := deleteNSBundle(0, max, appNSPrefix)
 	if err != nil {
 		t.Error(err.Error())
 	}
 	for _, s := range nsCounts {
 		util.Log.Info("Deleting namespace " + appNSPrefix + s + "-measure")
 		nsName := appNSPrefix + s + "-measure"
-		delNamespaceMesh(nsName)
+		deleteNSMesh(nsName)
 	}
 
 	// Test SMMR and SMCP are Ready

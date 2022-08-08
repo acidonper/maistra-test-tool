@@ -1,7 +1,6 @@
 package performance
 
 import (
-	"strconv"
 	"testing"
 
 	"github.com/maistra/maistra-test-tool/pkg/util"
@@ -23,83 +22,33 @@ func TestXDSPushes(t *testing.T) {
 	}
 
 	xdsPushCountValue, err := parseResponse([]byte(xdsPushCount))
+	if err != nil {
+		util.Log.Error(err)
+		t.Error(err)
+		t.FailNow()
+	}
 	xdsPushTimeValue, err := parseResponse([]byte(xdsPushTime))
-
 	if err != nil {
 		util.Log.Error(err)
 		t.Error(err)
 		t.FailNow()
 	}
 
-	util.Log.Info(" If xdsPushCount and xdsPushTime are equal - OK")
-	if xdsPushCountValue[0] != xdsPushTimeValue[0] {
-		t.Errorf("xdsPushCount (%v) and xdsPushTime (%v) are not equal", xdsPushCountValue, xdsPushTimeValue)
+	for i := 0; i < len(xdsPushCountValue); i++ {
+		if xdsPushCountValue[i] != xdsPushTimeValue[i] {
+			util.Log.Error(err)
+			t.Errorf("xdsPushCount (%v) and xdsPushTime (%v) are not equal and some requests are higher than %s seconds", xdsPushCountValue, xdsPushTimeValue, xdsPushAcceptanceTime)
+			t.FailNow()
+		} else {
+			util.Log.Info("OK: ", xdsPushCountValue[i], "/", xdsPushTimeValue[i], " correct XDS pushes")
+		}
 	}
 }
 
 func TestIstiodMem(t *testing.T) {
 	util.Log.Info("** TEST: TestIstiodMem")
-	istiodMem, err := getMetricPrometheusOCP("istiod_mem", nil)
-	istiodMemValue, err := parseResponse([]byte(istiodMem))
-	if err != nil {
-		util.Log.Error(err)
-		t.Error(err)
-		t.FailNow()
-	}
 
-	// Transform values to integers and compare them in bytes
-	istiodMemValueInt, err := strconv.Atoi(istiodMemValue[0])
-	istiodAcceptanceMemIntBytes, err := strconv.Atoi(istiodAcceptanceMem)
-
-	if err != nil {
-		util.Log.Error(err)
-		t.Error(err)
-		t.FailNow()
-	}
-
-	istiodAcceptanceMemIntBytes = istiodAcceptanceMemIntBytes * bytesToMegaBytes
-
-	util.Log.Info(" If istiodMem is lower than ", istiodAcceptanceMem, "MB")
-	if istiodMemValueInt > istiodAcceptanceMemIntBytes {
-		t.Errorf("Istiod Memory Value is %v. Want something lower than %v", istiodMemValueInt, istiodAcceptanceMemIntBytes)
-	}
-}
-
-func TestIstiodCpu(t *testing.T) {
-	util.Log.Info("** TEST: TestIstiodCpu")
-	istiodCpu, err := getMetricPrometheusOCP("istiod_cpu", nil)
-	if err != nil {
-		util.Log.Error(err)
-		t.Error(err)
-		t.FailNow()
-	}
-	istiodCpuValue, err := parseResponse([]byte(istiodCpu))
-
-	if err != nil {
-		util.Log.Error(err)
-		t.Error(err)
-		t.FailNow()
-	}
-
-	istiodAcceptanceCpuFloat, err := strconv.ParseFloat(istiodAcceptanceCpu, 32)
-	istiodCpuValueFloat, err := strconv.ParseFloat(istiodCpuValue[0], 32)
-
-	if err != nil {
-		util.Log.Error(err)
-		t.Error(err)
-		t.FailNow()
-	}
-
-	util.Log.Info(" If istiodCpu is lower than ", istiodAcceptanceCpu)
-	if istiodCpuValueFloat > istiodAcceptanceCpuFloat {
-		t.Errorf("Istiod CPU Value is %v. Want something lower than %v", istiodCpuValueFloat, istiodAcceptanceCpuFloat)
-	}
-}
-
-func TestIstioProxiesMem(t *testing.T) {
-	util.Log.Info("** TEST: TestIstioProxiesMem")
-
-	meshPods, err := getMeshProxies()
+	meshPods, err := getMeshProxies("istiod")
 	if err != nil {
 		util.Log.Error(err)
 		t.Error(err)
@@ -108,41 +57,41 @@ func TestIstioProxiesMem(t *testing.T) {
 	for name, namespace := range meshPods {
 		prometheusAPIMapParams["istio-proxy-pod-name"] = name
 		prometheusAPIMapParams["istio-proxy-pod-ns"] = namespace
-		istiodMem, err := getMetricPrometheusOCP("istio_proxies_mem_custom", prometheusAPIMapParams)
+		istiodProxyMem, err := getMetricPrometheusOCP("istio_proxies_mem_custom", prometheusAPIMapParams)
 		if err != nil {
 			util.Log.Error(err)
 			t.Error(err)
 			t.FailNow()
 		}
 
-		istiodMemValue, err := parseResponse([]byte(istiodMem))
-		istiodMemValueInt, err := strconv.Atoi(istiodMemValue[0])
-		istioProxiesAcceptanceMemInt, err := strconv.Atoi(istioProxiesAcceptanceMem)
-		istioProxiesAcceptanceMemBytes := istioProxiesAcceptanceMemInt * bytesToMegaBytes
-
+		istiodMemValue, err := parseResponse([]byte(istiodProxyMem))
 		if err != nil {
 			util.Log.Error(err)
 			t.Error(err)
 			t.FailNow()
 		}
 
-		util.Log.Info(" If IstioProxiesMem is lower than ", istioProxiesAcceptanceMem, "MB")
-		if istiodMemValueInt > istioProxiesAcceptanceMemBytes {
-			t.Errorf("Proxy Memory value (%v) is higher than the acceptance (in bytes): %v", istiodMemValueInt, istioProxiesAcceptanceMemBytes)
+		result, errComp := comparePodsMem(istiodMemValue[0], istiodAcceptanceMem)
+		if errComp != nil {
+			util.Log.Error(err)
+			t.Error(err)
+			t.FailNow()
+		} else {
+			util.Log.Info(result, " (pod/namespace: ", name, "/", namespace, ")")
 		}
-
 	}
 }
 
-func TestIstioProxiesCpu(t *testing.T) {
-	util.Log.Info("** TEST: TestIstioProxiesCpu")
+func TestIstiodCpu(t *testing.T) {
+	util.Log.Info("** TEST: TestIstiodCpu")
 
-	meshPods, err := getMeshProxies()
+	meshPods, err := getMeshProxies("istiod")
 	if err != nil {
 		util.Log.Error(err)
 		t.Error(err)
 		t.FailNow()
 	}
+
 	for name, namespace := range meshPods {
 		prometheusAPIMapParams["istio-proxy-pod-name"] = name
 		prometheusAPIMapParams["istio-proxy-pod-ns"] = namespace
@@ -154,32 +103,117 @@ func TestIstioProxiesCpu(t *testing.T) {
 		}
 
 		istiodCpuValue, err := parseResponse([]byte(istiodCpu))
-		istiodCpuValueFloat, err := strconv.ParseFloat(istiodCpuValue[0], 32)
-		istioProxiesAcceptanceCpuFloat, err := strconv.ParseFloat(istioProxiesAcceptanceCpu, 32)
-
 		if err != nil {
 			util.Log.Error(err)
 			t.Error(err)
 			t.FailNow()
 		}
 
-		util.Log.Info(" If istioProxiesCpu is lower than ", istioProxiesAcceptanceCpu)
-		if istiodCpuValueFloat > istioProxiesAcceptanceCpuFloat {
-			t.Errorf("Istiod CPU Proxy Value is %v. Want something lower than %v", istiodCpuValueFloat, istioProxiesAcceptanceCpuFloat)
+		result, errComp := comparePodsCpu(istiodCpuValue[0], istiodAcceptanceCpu)
+		if errComp != nil {
+			util.Log.Error(err)
+			t.Error(err)
+			t.FailNow()
+		} else {
+			util.Log.Info(result, " (pod/namespace: ", name, "/", namespace, ")")
 		}
-
 	}
 }
 
-func TestIstioIngressProxiesMem(t *testing.T) {
-	util.Log.Info("** TEST: TestIstioIngressProxiesMem")
+func TestIstioProxiesMem(t *testing.T) {
+	util.Log.Info("** TEST: TestIstioProxiesMem")
 
-	meshPods, err := getMeshIngressProxies()
+	meshPods, err := getMeshProxies("proxy")
 	if err != nil {
 		util.Log.Error(err)
 		t.Error(err)
 		t.FailNow()
 	}
+	for name, namespace := range meshPods {
+		prometheusAPIMapParams["istio-proxy-pod-name"] = name
+		prometheusAPIMapParams["istio-proxy-pod-ns"] = namespace
+		istioProxyMem, err := getMetricPrometheusOCP("istio_proxies_mem_custom", prometheusAPIMapParams)
+		if err != nil {
+			util.Log.Error(err)
+			t.Error(err)
+			t.FailNow()
+		}
+
+		istioProxyMemValue, err := parseResponse([]byte(istioProxyMem))
+		if err != nil {
+			util.Log.Error(err)
+			t.Error(err)
+			t.FailNow()
+		}
+
+		if len(istioProxyMemValue) > 0 {
+			result, errComp := comparePodsMem(istioProxyMemValue[0], istioProxiesAcceptanceMem)
+			if errComp != nil {
+				util.Log.Error(err)
+				t.Error(err)
+				t.FailNow()
+			} else {
+				util.Log.Info(result, " (pod/namespace: ", name, "/", namespace, ")")
+			}
+		} else {
+			util.Log.Info("WARNING: Memory metric for (pod/namespace: ", name, "/", namespace, ") not found")
+		}
+	}
+	util.Log.Info("OK: Istio proxies memory are lower than ", istioProxiesAcceptanceMem, " in Megabytes")
+}
+
+func TestIstioProxiesCpu(t *testing.T) {
+	util.Log.Info("** TEST: TestIstioProxiesCpu")
+
+	meshPods, err := getMeshProxies("proxy")
+	if err != nil {
+		util.Log.Error(err)
+		t.Error(err)
+		t.FailNow()
+	}
+	for name, namespace := range meshPods {
+		prometheusAPIMapParams["istio-proxy-pod-name"] = name
+		prometheusAPIMapParams["istio-proxy-pod-ns"] = namespace
+		istioProxyCpu, err := getMetricPrometheusOCP("istio_proxies_cpu_custom", prometheusAPIMapParams)
+		if err != nil {
+			util.Log.Error(err)
+			t.Error(err)
+			t.FailNow()
+		}
+
+		istioProxyCpuValue, err := parseResponse([]byte(istioProxyCpu))
+		if err != nil {
+			util.Log.Error(err)
+			t.Error(err)
+			t.FailNow()
+		}
+
+		if len(istioProxyCpuValue) > 0 {
+			result, errComp := comparePodsCpu(istioProxyCpuValue[0], istioProxiesAcceptanceCpu)
+			if errComp != nil {
+				util.Log.Error(err)
+				t.Error(err)
+				t.FailNow()
+			} else {
+				util.Log.Info(result, " (pod/namespace: ", name, "/", namespace, ")")
+			}
+		} else {
+			util.Log.Info("WARNING: CPU metric for (pod/namespace: ", name, "/", namespace, ") not found")
+		}
+	}
+	util.Log.Info("OK: Istio proxies CPU are lower than ", istioProxiesAcceptanceCpu, " in CPUs")
+}
+
+func TestIstioIngressMem(t *testing.T) {
+	util.Log.Info("** TEST: TestIstioIngressMem")
+
+	meshPods, err := getMeshProxies("ingress")
+	if err != nil {
+		util.Log.Error(err)
+		t.Error(err)
+		t.FailNow()
+	}
+
 	for name, namespace := range meshPods {
 		prometheusAPIMapParams["istio-proxy-pod-name"] = name
 		prometheusAPIMapParams["istio-proxy-pod-ns"] = namespace
@@ -189,29 +223,29 @@ func TestIstioIngressProxiesMem(t *testing.T) {
 			t.Error(err)
 			t.FailNow()
 		}
-		istioIngressProxyMemValue, err := parseResponse([]byte(istioIngressProxyMem))
-		istioIngressProxyMemValueInt, err := strconv.Atoi(istioIngressProxyMemValue[0])
-		istioIngressProxiesAcceptanceMemInt, err := strconv.Atoi(istioIngressProxiesAcceptanceMem)
-		istioIngressProxiesAcceptanceMemBytes := istioIngressProxiesAcceptanceMemInt * bytesToMegaBytes
 
+		istioIngressMemValue, err := parseResponse([]byte(istioIngressProxyMem))
 		if err != nil {
 			util.Log.Error(err)
 			t.Error(err)
 			t.FailNow()
 		}
 
-		util.Log.Info(" If istioIngressProxiesAcceptanceMem is lower than ", istioIngressProxiesAcceptanceMem, "MB")
-		if istioIngressProxyMemValueInt > istioIngressProxiesAcceptanceMemBytes {
-			t.Errorf("Proxy Memory value (%v) is higher than the acceptance (in bytes): %v", istioIngressProxyMemValueInt, istioIngressProxiesAcceptanceMemBytes)
+		result, errComp := comparePodsMem(istioIngressMemValue[0], istioIngressAcceptanceMem)
+		if errComp != nil {
+			util.Log.Error(err)
+			t.Error(err)
+			t.FailNow()
+		} else {
+			util.Log.Info(result, " (pod/namespace: ", name, "/", namespace, ")")
 		}
-
 	}
 }
 
-func TestIstioIngressProxiesCpu(t *testing.T) {
-	util.Log.Info("** TEST: TestIstioIngressProxiesCpu")
+func TestIstioIngressCpu(t *testing.T) {
+	util.Log.Info("** TEST: TestIstioIngressCpu")
 
-	meshPods, err := getMeshIngressProxies()
+	meshPods, err := getMeshProxies("ingress")
 	if err != nil {
 		util.Log.Error(err)
 		t.Error(err)
@@ -220,34 +254,35 @@ func TestIstioIngressProxiesCpu(t *testing.T) {
 	for name, namespace := range meshPods {
 		prometheusAPIMapParams["istio-proxy-pod-name"] = name
 		prometheusAPIMapParams["istio-proxy-pod-ns"] = namespace
-		istioIngressProxyCpu, err := getMetricPrometheusOCP("istio_proxies_cpu_custom", prometheusAPIMapParams)
-		if err != nil {
-			util.Log.Error(err)
-			t.Error(err)
-			t.FailNow()
-		}
-		istioIngressProxyCpuValue, err := parseResponse([]byte(istioIngressProxyCpu))
-		istioIngressProxyCpuValueFloat, err := strconv.ParseFloat(istioIngressProxyCpuValue[0], 32)
-		istioIngressProxiesAcceptanceCpuFloat, err := strconv.ParseFloat(istioIngressProxiesAcceptanceCpu, 32)
-
+		istioIngressCpu, err := getMetricPrometheusOCP("istio_proxies_cpu_custom", prometheusAPIMapParams)
 		if err != nil {
 			util.Log.Error(err)
 			t.Error(err)
 			t.FailNow()
 		}
 
-		util.Log.Info(" If istioIngressProxiesAcceptanceCpu is lower than ", istioIngressProxiesAcceptanceCpu)
-		if istioIngressProxyCpuValueFloat > istioIngressProxiesAcceptanceCpuFloat {
-			t.Errorf("Istiod CPU Proxy Value is %v. Want something lower than %v", istioIngressProxyCpuValueFloat, istioIngressProxiesAcceptanceCpuFloat)
+		istioIngressCpuValue, err := parseResponse([]byte(istioIngressCpu))
+		if err != nil {
+			util.Log.Error(err)
+			t.Error(err)
+			t.FailNow()
 		}
 
+		result, errComp := comparePodsCpu(istioIngressCpuValue[0], istioIngressAcceptanceCpu)
+		if errComp != nil {
+			util.Log.Error(err)
+			t.Error(err)
+			t.FailNow()
+		} else {
+			util.Log.Info(result, " (pod/namespace: ", name, "/", namespace, ")")
+		}
 	}
 }
 
-func TestIstioEgressProxiesMem(t *testing.T) {
-	util.Log.Info("** TEST: TestIstioEgressProxiesMem")
+func TestIstioEgressMem(t *testing.T) {
+	util.Log.Info("** TEST: TestIstioEgressMem")
 
-	meshPods, err := getMeshEgressProxies()
+	meshPods, err := getMeshProxies("egress")
 	if err != nil {
 		util.Log.Error(err)
 		t.Error(err)
@@ -262,29 +297,29 @@ func TestIstioEgressProxiesMem(t *testing.T) {
 			t.Error(err)
 			t.FailNow()
 		}
-		istioEgressProxyMemValue, err := parseResponse([]byte(istioEgressProxyMem))
-		istioEgressProxyMemValueInt, err := strconv.Atoi(istioEgressProxyMemValue[0])
-		istioEgressProxiesAcceptanceMemInt, err := strconv.Atoi(istioEgressProxiesAcceptanceMem)
-		istioEgressProxiesAcceptanceMemBytes := istioEgressProxiesAcceptanceMemInt * bytesToMegaBytes
 
+		istioEgressMemValue, err := parseResponse([]byte(istioEgressProxyMem))
 		if err != nil {
 			util.Log.Error(err)
 			t.Error(err)
 			t.FailNow()
 		}
 
-		util.Log.Info(" If istioEgressProxiesAcceptanceMem is lower than ", istioEgressProxiesAcceptanceMem, "MB")
-		if istioEgressProxyMemValueInt > istioEgressProxiesAcceptanceMemBytes {
-			t.Errorf("Proxy Egress Memory value (%v) is higher than the acceptance (in bytes): %v", istioEgressProxyMemValueInt, istioEgressProxiesAcceptanceMemBytes)
+		result, errComp := comparePodsMem(istioEgressMemValue[0], istioEgressAcceptanceMem)
+		if errComp != nil {
+			util.Log.Error(err)
+			t.Error(err)
+			t.FailNow()
+		} else {
+			util.Log.Info(result, " (pod/namespace: ", name, "/", namespace, ")")
 		}
-
 	}
 }
 
-func TestIstioEgressProxiesCpu(t *testing.T) {
-	util.Log.Info("** TEST: TestIstioEgressProxiesCpu")
+func TestIstioEgressCpu(t *testing.T) {
+	util.Log.Info("** TEST: TestIstioEgressCpu")
 
-	meshPods, err := getMeshEgressProxies()
+	meshPods, err := getMeshProxies("egress")
 	if err != nil {
 		util.Log.Error(err)
 		t.Error(err)
@@ -299,20 +334,21 @@ func TestIstioEgressProxiesCpu(t *testing.T) {
 			t.Error(err)
 			t.FailNow()
 		}
-		istioEgressProxyCpuValue, err := parseResponse([]byte(istioEgressProxyCpu))
-		istioEgressProxyCpuValueFloat, err := strconv.ParseFloat(istioEgressProxyCpuValue[0], 32)
-		istioEgressProxiesAcceptanceCpuFloat, err := strconv.ParseFloat(istioEgressProxiesAcceptanceCpu, 32)
 
+		istioEgressCpuValue, err := parseResponse([]byte(istioEgressProxyCpu))
 		if err != nil {
 			util.Log.Error(err)
 			t.Error(err)
 			t.FailNow()
 		}
 
-		util.Log.Info(" If istioEgressProxiesAcceptanceCpu is lower than ", istioEgressProxiesAcceptanceCpu)
-		if istioEgressProxyCpuValueFloat > istioEgressProxiesAcceptanceCpuFloat {
-			t.Errorf("Istiod CPU Egress Proxy Value is %v. Want something lower than %v", istioEgressProxyCpuValueFloat, istioEgressProxiesAcceptanceCpuFloat)
+		result, errComp := comparePodsCpu(istioEgressCpuValue[0], istioEgressAcceptanceCpu)
+		if errComp != nil {
+			util.Log.Error(err)
+			t.Error(err)
+			t.FailNow()
+		} else {
+			util.Log.Info(result, " (pod/namespace: ", name, "/", namespace, ")")
 		}
-
 	}
 }

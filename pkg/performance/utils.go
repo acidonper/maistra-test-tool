@@ -1,6 +1,7 @@
 package performance
 
 import (
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"errors"
@@ -11,33 +12,10 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/maistra/maistra-test-tool/pkg/util"
 )
-
-type PromResponse struct {
-	Status string `json:"status"`
-	Data   struct {
-		ResultType string `json:"resultType"`
-		Result     []struct {
-			Metric struct {
-				Name                 string `json:"__name__"`
-				App                  string `json:"app"`
-				Instance             string `json:"instance"`
-				Istio                string `json:"istio"`
-				IstioIoRev           string `json:"istio_io_rev"`
-				Job                  string `json:"job"`
-				KubernetesNamespace  string `json:"kubernetes_namespace"`
-				KubernetesPodName    string `json:"kubernetes_pod_name"`
-				Le                   string `json:"le"`
-				MaistraControlPlane  string `json:"maistra_control_plane"`
-				PodTemplateHash      string `json:"pod_template_hash"`
-				SidecarIstioIoInject string `json:"sidecar_istio_io_inject"`
-			} `json:"metric"`
-			Value []interface{} `json:"value"`
-		} `json:"result"`
-	} `json:"data"`
-}
 
 func TestSMCP(t *testing.T) {
 	msg, _ := util.ShellSilent(`oc wait --for condition=Ready -n %s smcp/%s --timeout 30s`, meshNamespace, smcpName)
@@ -69,8 +47,45 @@ func getRouteHost(route string, namespace string) (string, error) {
 	return msg, nil
 }
 
-func getMeshPods() ([]string, error) {
+func getOCPAppsDomain() (string, error) {
+	util.Log.Debug("Getting Openshift Apps Domain")
+	exampleRoute, err := getRouteHost("console", "openshift-console")
+	if err != nil {
+		return "", err
+	}
+	domain := strings.ReplaceAll(exampleRoute, "console-openshift-console.", "")
+	return domain, nil
+}
+
+func getMeshProxyPods() ([]string, error) {
 	meshPods, err := util.ShellSilent(`oc get pods -A -l istio.io/rev=%s --field-selector=status.phase==Running -o go-template='{{range .items}}{{.metadata.name}}/{{.metadata.namespace}},{{end}}'`, smcpName)
+	if err != nil {
+		return nil, err
+	}
+	podsList := strings.Split(meshPods, ",")
+	return podsList, nil
+}
+
+func getMeshIstiodPods() ([]string, error) {
+	meshPods, err := util.ShellSilent(`oc get pods -l app=istiod -l istio.io/rev=%s -n %s --field-selector=status.phase==Running -o go-template='{{range .items}}{{.metadata.name}}/{{.metadata.namespace}},{{end}}'`, smcpName, meshNamespace)
+	if err != nil {
+		return nil, err
+	}
+	podsList := strings.Split(meshPods, ",")
+	return podsList, nil
+}
+
+func getMeshIngressPods() ([]string, error) {
+	meshPods, err := util.ShellSilent(`oc get pods -A -l maistra-control-plane=%s -l istio=ingressgateway --field-selector=status.phase==Running -o go-template='{{range .items}}{{.metadata.name}}/{{.metadata.namespace}},{{end}}'`, meshNamespace)
+	if err != nil {
+		return nil, err
+	}
+	podsList := strings.Split(meshPods, ",")
+	return podsList, nil
+}
+
+func getMeshEgressPods() ([]string, error) {
+	meshPods, err := util.ShellSilent(`oc get pods -A -l maistra-control-plane=%s -l istio=egressgateway --field-selector=status.phase==Running -o go-template='{{range .items}}{{.metadata.name}}/{{.metadata.namespace}},{{end}}'`, meshNamespace)
 	if err != nil {
 		return nil, err
 	}
@@ -84,6 +99,17 @@ func deleteNS(namespace string) error {
 	if err != nil {
 		return err
 	}
+	check := false
+	for !check {
+		_, err := util.ShellSilent(`oc get namespace %s`, namespace)
+		if err != nil {
+			if !strings.Contains(err.Error(), "not found") {
+				return err
+			} else {
+				check = true
+			}
+		}
+	}
 	return nil
 }
 
@@ -96,7 +122,7 @@ func createNS(namespace string) error {
 	return nil
 }
 
-func delNamespaceMesh(namespace string) error {
+func deleteNSMesh(namespace string) error {
 	// Find namespace in members array
 	tmp, err := util.ShellSilent(`oc get smmr default -n %s --template='{{ .spec.members }}'`, meshNamespace)
 	if err != nil {
@@ -139,7 +165,7 @@ func delNamespaceMesh(namespace string) error {
 	return nil
 }
 
-func createNamespaceMesh(namespace string) error {
+func createNSMesh(namespace string) error {
 	// Create NS
 	err := createNS(namespace)
 	if err != nil {
@@ -168,7 +194,7 @@ func createNamespaceMesh(namespace string) error {
 	return nil
 }
 
-func addNamespaceMesh(namespace string) error {
+func addNSToMesh(namespace string) error {
 	// Path SMMR
 	_, err := util.ShellSilent(`oc patch smmr default -n %s --type='json' -p='[{"op": "add", "path": "/spec/members/-", "value":"%s"}]'`, meshNamespace, namespace)
 	if err != nil {
@@ -186,6 +212,101 @@ func addNamespaceMesh(namespace string) error {
 		if strings.Contains(msg, namespace) {
 			configured = true
 			return nil
+		}
+	}
+	return nil
+}
+
+func arrayPositionFind(a []string, x string) int {
+	for i, n := range a {
+		if x == n || "["+x == n || x+"]" == n {
+			return i
+		}
+	}
+	return -1
+}
+
+func deleteNSBundle(min int, max int, prefix string) error {
+	util.Log.Info("Deleting namespaces from ", min, " to ", max)
+	for i := min; i < max; i++ {
+		nsName := prefix + strconv.Itoa(i)
+		err := deleteNSMesh(nsName)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func createNSBundle(min int, max int, prefix string) error {
+	util.Log.Info("Creating namespaces from ", min, " to ", max)
+	for i := min; i < max; i++ {
+		nsName := prefix + strconv.Itoa(i)
+		err := createNSMesh(nsName)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func deleteAppBundle(app string, number int) error {
+	util.Log.Info("Deleting ", app, " applications: ", strconv.Itoa(number))
+
+	// Creating the respective number of apps
+	for i := 1; i <= number; i++ {
+		prefix := ""
+
+		switch app {
+		case "bookinfo":
+			prefix = bookinfoNSPrefix
+		case "jumpapp":
+			prefix = jumpappNSPrefix
+		default:
+			return fmt.Errorf("application " + app + " not supported (bookinfo or jumpapp)")
+		}
+
+		nsName := prefix + strconv.Itoa(i)
+		err := deleteNSMesh(nsName)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func createAppBundle(app string, number int) error {
+	util.Log.Info("Deploying ", app, " applications: ", strconv.Itoa(number))
+
+	// Creating the respective number of apps
+	for i := 1; i <= number; i++ {
+
+		nsName := ""
+
+		switch app {
+		case "bookinfo":
+			nsName = bookinfoNSPrefix + strconv.Itoa(i)
+			err := createNSMesh(nsName)
+			if err != nil {
+				return err
+			}
+			ocpDomain, err := getOCPAppsDomain()
+			if err != nil {
+				return err
+			}
+			host := "bookinfo." + nsName + "." + ocpDomain
+			bookinfo := Bookinfo{Name: nsName, Namespace: nsName, Host: host}
+			bookinfo.BookinfoInstall(false)
+		case "jumpapp":
+			nsName = bookinfoNSPrefix + strconv.Itoa(i)
+			err := createNSMesh(nsName)
+			if err != nil {
+				return err
+			}
+			jumpapp := JumpApp{Namespace: nsName}
+			jumpapp.JumpappInstall()
+		default:
+			return fmt.Errorf("application " + app + " not supported (bookinfo or jumpapp)")
 		}
 	}
 	return nil
@@ -346,6 +467,98 @@ func getMetricPrometheusOCP(query string, params map[string]string) (string, err
 	return resp, nil
 }
 
+func getMeshProxies(role string) (map[string]string, error) {
+
+	var podsList []string
+	var err error
+
+	// Get pods depending on type of role
+	switch role {
+	case "proxy":
+		podsList, err = getMeshProxyPods()
+	case "istiod":
+		podsList, err = getMeshIstiodPods()
+	case "ingress":
+		podsList, err = getMeshIngressPods()
+	case "egress":
+		podsList, err = getMeshEgressPods()
+	default:
+		err = fmt.Errorf("mesh pod role not defined (Supported: proxy, istiod, ingress or egress)")
+	}
+
+	// Find proxies in the mesh
+	if err != nil {
+		return nil, err
+	}
+
+	// generate the respective map
+	pods := make(map[string]string)
+	for _, s := range podsList {
+		if s != "" {
+			podMetadata := strings.Split(s, "/")
+			pods[podMetadata[0]] = podMetadata[1]
+		}
+	}
+
+	return pods, nil
+}
+
+func GetPodStatus(n, pod string) (string, error) {
+	status, err := util.ShellSilent("kubectl -n %s get pods %s --no-headers", n, pod)
+	if err != nil {
+		status = podFailedGet
+	}
+	f := strings.Fields(status)
+	if len(f) > statusField {
+		return f[statusField], nil
+	}
+	return "", err
+}
+
+// GetPodName gets the pod name for the given namespace and label selector
+func GetPodName(n, labelSelector string) (pod string, err error) {
+	pod, err = util.ShellSilent("kubectl -n %s get pod -l %s -o jsonpath='{.items[0].metadata.name}'", n, labelSelector)
+	if err != nil {
+		return "", fmt.Errorf("could not get %s pod: %v", labelSelector, err)
+	}
+	return
+}
+
+func CheckPodRunning(n, name string) error {
+	retry := util.Retrier{
+		BaseDelay: 30 * time.Second,
+		MaxDelay:  30 * time.Second,
+		Retries:   6,
+	}
+
+	retryFn := func(_ context.Context, i int) error {
+		pod, err := GetPodName(n, name)
+		if err != nil {
+			return err
+		}
+		ready := true
+		status, errStatusPod := GetPodStatus(n, pod)
+		if errStatusPod != nil {
+			return err
+		}
+		if status != "Running" {
+			util.Log.Debug("%s in namespace %s is not running: %s", pod, n, status)
+			ready = false
+		}
+		if !ready {
+			return fmt.Errorf("pod %s is not ready", pod)
+		}
+		return nil
+	}
+	ctx := context.Background()
+	_, err := retry.Retry(ctx, retryFn)
+	if err != nil {
+		return err
+	}
+	util.Log.Debug("Got the pod name=%s running!", name)
+	return nil
+}
+
 func parseResponse(response []byte) ([]string, error) {
 
 	var newResponse PromResponse
@@ -367,58 +580,85 @@ func parseResponse(response []byte) ([]string, error) {
 	return values, nil
 }
 
-func getMeshProxies() (map[string]string, error) {
-	// Find proxies in the mesh
-	podsList, err := getMeshPods()
-	if err != nil {
-		return nil, err
+func comparePodsMem(value1 string, value2 string) (string, error) {
+
+	value1Int, errConver1 := strconv.Atoi(value1)
+	if errConver1 != nil {
+		return "", errConver1
 	}
-	// generate the respective map excluding control plane namespace proxies
-	pods := make(map[string]string)
-	for _, s := range podsList {
-		if !strings.Contains(s, meshNamespace) && s != "" {
-			podMetadata := strings.Split(s, "/")
-			pods[podMetadata[0]] = podMetadata[1]
-		}
+	value1IntMegaBytes := value1Int / bytesToMegaBytes
+
+	value2IntMegabytes, errConver2 := strconv.Atoi(value2)
+	if errConver2 != nil {
+		return "", errConver1
 	}
 
-	return pods, nil
+	if value1IntMegaBytes > value2IntMegabytes {
+		msg := fmt.Errorf("memory value is %v. Want something lower than %v", value1IntMegaBytes, value2IntMegabytes)
+		return "", msg
+	} else {
+		msg := ("OK: Memory " + strconv.Itoa(value1IntMegaBytes) + " is lower than " + strconv.Itoa(value2IntMegabytes) + " in MBs")
+		return msg, nil
+	}
 }
 
-func getMeshIngressProxies() (map[string]string, error) {
-	// Find proxies in the mesh
-	podsList, err := getMeshPods()
-	if err != nil {
-		return nil, err
+func comparePodsCpu(value1 string, value2 string) (string, error) {
+
+	value1Float, errConver1 := strconv.ParseFloat(value1, 32)
+	if errConver1 != nil {
+		return "", errConver1
+	}
+	value1FloatMilicores := value1Float * coresToMilicores
+
+	value2FloatMilicores, errConver2 := strconv.ParseFloat(value2, 32)
+	if errConver2 != nil {
+		return "", errConver1
 	}
 
-	// generate the respective map filtering ingress gateways
-	pods := make(map[string]string)
-	for _, s := range podsList {
-		if strings.Contains(s, "istio-ingressgateway-") && s != "" {
-			podMetadata := strings.Split(s, "/")
-			pods[podMetadata[0]] = podMetadata[1]
-		}
+	if value1FloatMilicores > value2FloatMilicores {
+		msg := fmt.Errorf("cpu value is %v. Want something lower than %v", value1FloatMilicores, value2FloatMilicores)
+		return "", msg
+	} else {
+		msg := ("OK: CPU " + fmt.Sprintf("%f", value1FloatMilicores) + " is lower than " + fmt.Sprintf("%f", value2FloatMilicores) + " in Milicores")
+		return msg, nil
 	}
-
-	return pods, nil
 }
 
-func getMeshEgressProxies() (map[string]string, error) {
-	// Find proxies in the mesh
-	podsList, err := getMeshPods()
+func execK6SyncTest(vus string, duration string, url string, test string, file string) (string, error) {
+	util.Log.Info("Executing test ", test, " in ", url, " (vus/duration: ", vus, "/", duration, "s)")
+	msg, err := util.ShellSilent(`k6 run --vus %s --duration %ss --env TEST_URL="%s" --summary-export %s %s/k6/%s`, vus, duration, url, file, basedir, test)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
+	return msg, nil
+}
 
-	// generate the respective map filtering egress gateways
-	pods := make(map[string]string)
-	for _, s := range podsList {
-		if strings.Contains(s, "istio-egressgateway-") && s != "" {
-			podMetadata := strings.Split(s, "/")
-			pods[podMetadata[0]] = podMetadata[1]
+func generateSimpleTrafficLoadK6(protocol string, app string) (string, error) {
+
+	var pid string
+	var url string
+	var err error
+
+	if app == "bookinfo" && protocol == "http" {
+		appName := bookinfoNSPrefix + "1"
+		reportFile := "/tmp/" + appName + ".json"
+		routeHost, errRoute := getRouteHost(appName, meshNamespace)
+		if errRoute != nil {
+			return "", fmt.Errorf("route %s not found in namespace %s", appName, meshNamespace)
+		} else {
+			url = "https://" + routeHost + "/productpage"
 		}
+		_, err = execK6SyncTest(testVUs, testDuration, url, "http-basic.js", reportFile)
+	} else {
+		errorMsg := fmt.Errorf("application %s and protocol %s not supported", app, protocol)
+		return "", errorMsg
 	}
 
-	return pods, nil
+	if err != nil {
+		return "", err
+	}
+
+	util.Log.Info("TODO: Implement k6 reports parse to obtain AVG p95 SLI and compare with the respective acceptance value ", reqAvg95pAcceptanceTime)
+
+	return pid, nil
 }

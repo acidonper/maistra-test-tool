@@ -1,0 +1,19 @@
+# Source: jump-app/charts/jump-app-micros/templates/istio/peerauthentication.yaml
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default
+spec:
+  mtls:
+    mode: STRICT
+---
+# Source: jump-app/charts/jump-app-micros/templates/istio/destinationrule.yaml
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: jumpapp-mtls
+spec:
+  host: "*.jumpapp.svc.cluster.local"
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL

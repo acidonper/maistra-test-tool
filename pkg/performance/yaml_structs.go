@@ -40,3 +40,120 @@ type PromResponse struct {
 		} `json:"result"`
 	} `json:"data"`
 }
+
+type K6Response struct {
+	RootGroup struct {
+		Groups struct {
+		} `json:"groups"`
+		Checks struct {
+		} `json:"checks"`
+		Name string `json:"name"`
+		Path string `json:"path"`
+		ID   string `json:"id"`
+	} `json:"root_group"`
+	Metrics struct {
+		HTTPReqTLSHandshaking struct {
+			Med int     `json:"med"`
+			Max float64 `json:"max"`
+			P90 int     `json:"p(90)"`
+			P95 int     `json:"p(95)"`
+			Avg float64 `json:"avg"`
+			Min int     `json:"min"`
+		} `json:"http_req_tls_handshaking"`
+		Iterations struct {
+			Count int     `json:"count"`
+			Rate  float64 `json:"rate"`
+		} `json:"iterations"`
+		HTTPReqReceiving struct {
+			P90 float64 `json:"p(90)"`
+			P95 float64 `json:"p(95)"`
+			Avg float64 `json:"avg"`
+			Min float64 `json:"min"`
+			Med float64 `json:"med"`
+			Max float64 `json:"max"`
+		} `json:"http_req_receiving"`
+		HTTPReqDuration struct {
+			Max float64 `json:"max"`
+			P90 float64 `json:"p(90)"`
+			P95 float64 `json:"p(95)"`
+			Avg float64 `json:"avg"`
+			Min float64 `json:"min"`
+			Med float64 `json:"med"`
+		} `json:"http_req_duration"`
+		HTTPReqs struct {
+			Rate  float64 `json:"rate"`
+			Count int     `json:"count"`
+		} `json:"http_reqs"`
+		DataReceived struct {
+			Count int     `json:"count"`
+			Rate  float64 `json:"rate"`
+		} `json:"data_received"`
+		HTTPReqConnecting struct {
+			Max float64 `json:"max"`
+			P90 int     `json:"p(90)"`
+			P95 int     `json:"p(95)"`
+			Avg float64 `json:"avg"`
+			Min int     `json:"min"`
+			Med int     `json:"med"`
+		} `json:"http_req_connecting"`
+		HTTPReqSending struct {
+			P95 float64 `json:"p(95)"`
+			Avg float64 `json:"avg"`
+			Min float64 `json:"min"`
+			Med float64 `json:"med"`
+			Max float64 `json:"max"`
+			P90 float64 `json:"p(90)"`
+		} `json:"http_req_sending"`
+		DataSent struct {
+			Count int     `json:"count"`
+			Rate  float64 `json:"rate"`
+		} `json:"data_sent"`
+		HTTPReqDurationExpectedResponseTrue struct {
+			Max float64 `json:"max"`
+			P90 float64 `json:"p(90)"`
+			P95 float64 `json:"p(95)"`
+			Avg float64 `json:"avg"`
+			Min float64 `json:"min"`
+			Med float64 `json:"med"`
+		} `json:"http_req_duration{expected_response:true}"`
+		IterationDuration struct {
+			Min float64 `json:"min"`
+			Med float64 `json:"med"`
+			Max float64 `json:"max"`
+			P90 float64 `json:"p(90)"`
+			P95 float64 `json:"p(95)"`
+			Avg float64 `json:"avg"`
+		} `json:"iteration_duration"`
+		HTTPReqFailed struct {
+			Passes int `json:"passes"`
+			Fails  int `json:"fails"`
+			Value  int `json:"value"`
+		} `json:"http_req_failed"`
+		VusMax struct {
+			Value int `json:"value"`
+			Min   int `json:"min"`
+			Max   int `json:"max"`
+		} `json:"vus_max"`
+		HTTPReqWaiting struct {
+			Avg float64 `json:"avg"`
+			Min float64 `json:"min"`
+			Med float64 `json:"med"`
+			Max float64 `json:"max"`
+			P90 float64 `json:"p(90)"`
+			P95 float64 `json:"p(95)"`
+		} `json:"http_req_waiting"`
+		Vus struct {
+			Value int `json:"value"`
+			Min   int `json:"min"`
+			Max   int `json:"max"`
+		} `json:"vus"`
+		HTTPReqBlocked struct {
+			Med float64 `json:"med"`
+			Max float64 `json:"max"`
+			P90 float64 `json:"p(90)"`
+			P95 float64 `json:"p(95)"`
+			Avg float64 `json:"avg"`
+			Min float64 `json:"min"`
+		} `json:"http_req_blocked"`
+	} `json:"metrics"`
+}

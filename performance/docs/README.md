@@ -53,7 +53,9 @@ NOTE: Test cases shortname and mapping are in the `tests/test_cases.go` file.
 
 ## Run Performance Test from a Container Image
 
-It is possible to generate a container image in order to execute the performance tests from a imutable container. Please follow the next procedure to execute the performance test usin *podman*:
+It is possible to generate a container image in order to execute the performance tests from a imutable container. Please follow the next procedure to execute the performance test using *podman*:
+
+- Modify the required environment variables
 
 ```$bash
 vi performance/Dockerfile
@@ -62,11 +64,20 @@ ENV OCP_CRED_USR=XXX
 ENV OCP_CRED_PSW=XXX
 ENV OCP_API_URL=XXX
 ...
+```
 
+- Build the container image with the environment variables, binaries and the respective code
+
+```$bash
 podman build . -t maistra-test-tool-performance -f performance/Dockerfile
+```
 
+- Run the performance tests
+
+```$bash
 podman run -it localhost/maistra-test-tool-performance
 ```
+
 
 ## Test Cases
 

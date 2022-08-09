@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -639,8 +640,7 @@ func generateSimpleTrafficLoadK6(protocol string, app string) error {
 	var err error
 
 	if app == "bookinfo" && protocol == "http" {
-		appName := bookinfoNSPrefix + "1"
-		reportFile := "/tmp/" + appName + ".json"
+
 		routeHost, errRoute := getRouteHost(appName, meshNamespace)
 		if errRoute != nil {
 			return fmt.Errorf("route %s not found in namespace %s", appName, meshNamespace)
@@ -653,28 +653,22 @@ func generateSimpleTrafficLoadK6(protocol string, app string) error {
 			return err
 		}
 
-		// dat, err := os.ReadFile(reportFile)
-		// if err != nil {
-		// 	return "", err
-		// }
-
-		// res, err := parseK6Response(dat)
-		// if err != nil {
-		// 	return "", err
-		// }
-
-		// if res.Metrics.Checks.Fails > 0 {
-		// 	return "", fmt.Errorf("There were %v fails in the tests", res.Metrics.Checks.Fails)
-		// } else {
-		// 	p95 = fmt.Sprintf("%f", res.Metrics.HTTPReqReceiving.P95)
-		// }
-
 	} else {
 		errorMsg := fmt.Errorf("application %s and protocol %s not supported", app, protocol)
 		return errorMsg
 	}
 
 	return nil
+}
+
+func readK6File() ([]byte, error) {
+
+	dat, err := os.ReadFile(reportFile)
+	if err != nil {
+		return nil, err
+	}
+
+	return dat, nil
 }
 
 func parseK6Response(response []byte) (K6Response, error) {

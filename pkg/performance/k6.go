@@ -15,7 +15,11 @@ func GenerateTrafficLoadK6(t *testing.T) {
 		t.Error(err)
 		t.FailNow()
 	}
+	util.Log.Info("OK: k6 load test executed")
+}
 
+func AnalyseLoadK6Output(t *testing.T) {
+	util.Log.Info("** TEST: AnalyseLoadK6Output")
 	dat, err := readK6File()
 	if err != nil {
 		util.Log.Error(err)
@@ -45,7 +49,7 @@ func GenerateTrafficLoadK6(t *testing.T) {
 		util.Log.Error(err)
 		t.Error(err)
 		t.FailNow()
-	} else {
-		util.Log.Info("%v", result)
 	}
+
+	util.Log.Info("%v", result)
 }

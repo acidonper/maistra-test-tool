@@ -13,7 +13,7 @@ import (
 func testNamespaceAdditionTime(index int, acceptanceTime int) error {
 	// Convert second to milisecond
 	acceptanceTimeMS := acceptanceTime * 1000
-	util.Log.Info("Adding a new namespace to the mesh (Acceptance Time: ", acceptanceTimeMS, " miliseconds)")
+	util.Log.Info("Adding a new namespace to the mesh (Acceptance Time: ", acceptanceTimeMS, " milliseconds)")
 
 	// Create namespace
 	nsName := appNSPrefix + strconv.Itoa(index) + "-measure"
@@ -35,7 +35,7 @@ func testNamespaceAdditionTime(index int, acceptanceTime int) error {
 		util.Log.Error("Acceptance time exceeded")
 		return fmt.Errorf("acceptance time exceeded")
 	}
-	util.Log.Info("Duration OK: ", duration, " miliseconds")
+	util.Log.Info("Duration OK: ", duration, " milliseconds")
 	return nil
 }
 

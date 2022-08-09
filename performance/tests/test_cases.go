@@ -77,10 +77,10 @@ var performanceCases = []testing.InternalTest{
 		Name: "DP3.2",
 		F:    performance.TestIstioEgressCpu,
 	},
-	// testing.InternalTest{
-	// 	Name: "A8",
-	// 	F:    performance.analyseLoadOutput,  TODO
-	// },
+	testing.InternalTest{
+		Name: "A8",
+		F:    performance.AnalyseLoadK6Output,
+	},
 	testing.InternalTest{
 		Name: "A9",
 		F:    performance.DeleteTestDPObjects,

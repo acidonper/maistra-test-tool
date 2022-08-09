@@ -9,7 +9,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -634,9 +633,8 @@ func execK6SyncTest(vus string, duration string, url string, test string, file s
 	return msg, nil
 }
 
-func generateSimpleTrafficLoadK6(protocol string, app string) (string, error) {
+func generateSimpleTrafficLoadK6(protocol string, app string) error {
 
-	var pid string
 	var url string
 	var err error
 
@@ -645,38 +643,38 @@ func generateSimpleTrafficLoadK6(protocol string, app string) (string, error) {
 		reportFile := "/tmp/" + appName + ".json"
 		routeHost, errRoute := getRouteHost(appName, meshNamespace)
 		if errRoute != nil {
-			return "", fmt.Errorf("route %s not found in namespace %s", appName, meshNamespace)
+			return fmt.Errorf("route %s not found in namespace %s", appName, meshNamespace)
 		} else {
 			url = "https://" + routeHost + "/productpage"
 		}
 		_, err = execK6SyncTest(testVUs, testDuration, url, "http-basic.js", reportFile)
 
-		dat, err := os.ReadFile(reportFile)
 		if err != nil {
-			return "", err
+			return err
 		}
 
-		res, err := parseK6Response(dat)
-		if err != nil {
-			return "", err
-		}
+		// dat, err := os.ReadFile(reportFile)
+		// if err != nil {
+		// 	return "", err
+		// }
 
-		if res.Metrics.Checks.Fails > 0 {
-			return "", fmt.Errorf("There were %v fails in the tests", res.Metrics.Checks.Fails)
-		} else {
-			pid = fmt.Sprintf("%f", res.Metrics.HTTPReqReceiving.P95)
-		}
+		// res, err := parseK6Response(dat)
+		// if err != nil {
+		// 	return "", err
+		// }
+
+		// if res.Metrics.Checks.Fails > 0 {
+		// 	return "", fmt.Errorf("There were %v fails in the tests", res.Metrics.Checks.Fails)
+		// } else {
+		// 	p95 = fmt.Sprintf("%f", res.Metrics.HTTPReqReceiving.P95)
+		// }
 
 	} else {
 		errorMsg := fmt.Errorf("application %s and protocol %s not supported", app, protocol)
-		return "", errorMsg
+		return errorMsg
 	}
 
-	if err != nil {
-		return "", err
-	}
-
-	return pid, nil
+	return nil
 }
 
 func parseK6Response(response []byte) (K6Response, error) {

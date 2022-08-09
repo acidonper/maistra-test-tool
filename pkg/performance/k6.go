@@ -43,7 +43,7 @@ func AnalyseLoadK6Output(t *testing.T) {
 		util.Log.Info(result)
 	}
 
-	p95 := res.Metrics.HTTPReqReceiving.P95
+	p95 := res.Metrics.HTTPReqDuration.P95
 	result, err = compareP95(fmt.Sprintf("%f", p95), reqAvg95pAcceptanceTime)
 	if err != nil {
 		util.Log.Error(err)

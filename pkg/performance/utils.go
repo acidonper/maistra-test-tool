@@ -392,7 +392,7 @@ func getMetricPrometheus(host string, auth string, secret string, query string) 
 		}
 	} else {
 
-		err := fmt.Errorf("Auth method not defined: %q", auth)
+		err := fmt.Errorf("auth method not defined: %q", auth)
 		return "", err
 	}
 
@@ -628,7 +628,7 @@ func comparePodsCpu(value1 string, value2 string) (string, error) {
 func checkFailedMetrics(fails int) (string, error) {
 
 	if fails > 0 {
-		msg := fmt.Errorf("There are %v requests failing", fails)
+		msg := fmt.Errorf("there are %v requests failing", fails)
 		return "", msg
 	} else {
 		msg := ("OK: No requests failing")
@@ -650,10 +650,10 @@ func compareP95(value1 string, value2 string) (string, error) {
 	}
 
 	if value1Float > value2Float {
-		msg := fmt.Errorf("Percentile 95 is %v. Want something lower than %v", value1Float, value2Float)
+		msg := fmt.Errorf("percentile 95 is %v. Want something lower than %v", value1Float, value2Float)
 		return "", msg
 	} else {
-		msg := ("OK: Percentile 95 " + fmt.Sprintf("%f", value1Float) + " is lower than " + fmt.Sprintf("%f", value2Float) + " in Milicores")
+		msg := ("OK: Percentile 95 " + fmt.Sprintf("%f", value1Float) + " is lower than " + fmt.Sprintf("%f", value2Float))
 		return msg, nil
 	}
 

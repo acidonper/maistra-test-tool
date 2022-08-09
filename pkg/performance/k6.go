@@ -40,7 +40,7 @@ func AnalyseLoadK6Output(t *testing.T) {
 		t.Error(err)
 		t.FailNow()
 	} else {
-		util.Log.Info("%v", result)
+		util.Log.Info(result)
 	}
 
 	p95 := res.Metrics.HTTPReqReceiving.P95
@@ -51,5 +51,5 @@ func AnalyseLoadK6Output(t *testing.T) {
 		t.FailNow()
 	}
 
-	util.Log.Info("%v", result)
+	util.Log.Info(result)
 }

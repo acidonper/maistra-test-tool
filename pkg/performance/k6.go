@@ -36,7 +36,7 @@ func GenerateTrafficLoadK6(t *testing.T) {
 		t.Error(err)
 		t.FailNow()
 	} else {
-		util.Log.Info("%v", result)
+		util.Log.Info(result)
 	}
 
 	p95 := res.Metrics.HTTPReqReceiving.P95
@@ -46,6 +46,6 @@ func GenerateTrafficLoadK6(t *testing.T) {
 		t.Error(err)
 		t.FailNow()
 	} else {
-		util.Log.Info("%v", result)
+		util.Log.Info(result)
 	}
 }

@@ -653,7 +653,7 @@ func compareP95(value1 string, value2 string) (string, error) {
 		msg := fmt.Errorf("Percentile 95 is %v. Want something lower than %v", value1Float, value2Float)
 		return "", msg
 	} else {
-		msg := ("OK: Percentile 95 " + fmt.Sprintf("%f", value1Float) + " is lower than " + fmt.Sprintf("%f", value2Float) + " in Milicores")
+		msg := ("OK: Percentile 95 " + fmt.Sprintf("%f", value1Float) + " is lower than " + fmt.Sprintf("%f", value2Float))
 		return msg, nil
 	}
 

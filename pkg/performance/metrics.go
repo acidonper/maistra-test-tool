@@ -21,13 +21,13 @@ func TestXDSPushes(t *testing.T) {
 		t.FailNow()
 	}
 
-	xdsPushCountValue, err := parseResponse([]byte(xdsPushCount))
+	xdsPushCountValue, err := parsePromResponse([]byte(xdsPushCount))
 	if err != nil {
 		util.Log.Error(err)
 		t.Error(err)
 		t.FailNow()
 	}
-	xdsPushTimeValue, err := parseResponse([]byte(xdsPushTime))
+	xdsPushTimeValue, err := parsePromResponse([]byte(xdsPushTime))
 	if err != nil {
 		util.Log.Error(err)
 		t.Error(err)
@@ -54,7 +54,6 @@ func TestIstiodMem(t *testing.T) {
 		t.Error(err)
 		t.FailNow()
 	}
-
 	for name, namespace := range meshPods {
 		prometheusAPIMapParams["istio-proxy-pod-name"] = name
 		prometheusAPIMapParams["istio-proxy-pod-ns"] = namespace
@@ -65,7 +64,7 @@ func TestIstiodMem(t *testing.T) {
 			t.FailNow()
 		}
 
-		istiodMemValue, err := parseResponse([]byte(istiodProxyMem))
+		istiodMemValue, err := parsePromResponse([]byte(istiodProxyMem))
 		if err != nil {
 			util.Log.Error(err)
 			t.Error(err)
@@ -103,7 +102,7 @@ func TestIstiodCpu(t *testing.T) {
 			t.FailNow()
 		}
 
-		istiodCpuValue, err := parseResponse([]byte(istiodCpu))
+		istiodCpuValue, err := parsePromResponse([]byte(istiodCpu))
 		if err != nil {
 			util.Log.Error(err)
 			t.Error(err)
@@ -140,7 +139,7 @@ func TestIstioProxiesMem(t *testing.T) {
 			t.FailNow()
 		}
 
-		istioProxyMemValue, err := parseResponse([]byte(istioProxyMem))
+		istioProxyMemValue, err := parsePromResponse([]byte(istioProxyMem))
 		if err != nil {
 			util.Log.Error(err)
 			t.Error(err)
@@ -182,7 +181,7 @@ func TestIstioProxiesCpu(t *testing.T) {
 			t.FailNow()
 		}
 
-		istioProxyCpuValue, err := parseResponse([]byte(istioProxyCpu))
+		istioProxyCpuValue, err := parsePromResponse([]byte(istioProxyCpu))
 		if err != nil {
 			util.Log.Error(err)
 			t.Error(err)
@@ -225,7 +224,7 @@ func TestIstioIngressMem(t *testing.T) {
 			t.FailNow()
 		}
 
-		istioIngressMemValue, err := parseResponse([]byte(istioIngressProxyMem))
+		istioIngressMemValue, err := parsePromResponse([]byte(istioIngressProxyMem))
 		if err != nil {
 			util.Log.Error(err)
 			t.Error(err)
@@ -262,7 +261,7 @@ func TestIstioIngressCpu(t *testing.T) {
 			t.FailNow()
 		}
 
-		istioIngressCpuValue, err := parseResponse([]byte(istioIngressCpu))
+		istioIngressCpuValue, err := parsePromResponse([]byte(istioIngressCpu))
 		if err != nil {
 			util.Log.Error(err)
 			t.Error(err)
@@ -299,7 +298,7 @@ func TestIstioEgressMem(t *testing.T) {
 			t.FailNow()
 		}
 
-		istioEgressMemValue, err := parseResponse([]byte(istioEgressProxyMem))
+		istioEgressMemValue, err := parsePromResponse([]byte(istioEgressProxyMem))
 		if err != nil {
 			util.Log.Error(err)
 			t.Error(err)
@@ -336,7 +335,7 @@ func TestIstioEgressCpu(t *testing.T) {
 			t.FailNow()
 		}
 
-		istioEgressCpuValue, err := parseResponse([]byte(istioEgressProxyCpu))
+		istioEgressCpuValue, err := parsePromResponse([]byte(istioEgressProxyCpu))
 		if err != nil {
 			util.Log.Error(err)
 			t.Error(err)

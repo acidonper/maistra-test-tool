@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -390,7 +391,9 @@ func getMetricPrometheus(host string, auth string, secret string, query string) 
 			return "", err
 		}
 	} else {
-		return "", fmt.Errorf("auth method not defined: " + auth)
+
+		err := fmt.Errorf("Auth method not defined: %q", auth)
+		return "", err
 	}
 
 	// Process HTTP response
@@ -557,7 +560,7 @@ func CheckPodRunning(n, name string) error {
 	return nil
 }
 
-func parseResponse(response []byte) ([]string, error) {
+func parsePromResponse(response []byte) ([]string, error) {
 
 	var newResponse PromResponse
 
@@ -622,6 +625,40 @@ func comparePodsCpu(value1 string, value2 string) (string, error) {
 	}
 }
 
+func checkFailedMetrics(fails int) (string, error) {
+
+	if fails > 0 {
+		msg := fmt.Errorf("There are %v requests failing", fails)
+		return "", msg
+	} else {
+		msg := ("OK: No requests failing")
+		return msg, nil
+	}
+
+}
+
+func compareP95(value1 string, value2 string) (string, error) {
+
+	value1Float, errConver1 := strconv.ParseFloat(value1, 64)
+	if errConver1 != nil {
+		return "", errConver1
+	}
+
+	value2Float, errConver2 := strconv.ParseFloat(value2, 64)
+	if errConver2 != nil {
+		return "", errConver1
+	}
+
+	if value1Float > value2Float {
+		msg := fmt.Errorf("Percentile 95 is %v. Want something lower than %v", value1Float, value2Float)
+		return "", msg
+	} else {
+		msg := ("OK: Percentile 95 " + fmt.Sprintf("%f", value1Float) + " is lower than " + fmt.Sprintf("%f", value2Float))
+		return msg, nil
+	}
+
+}
+
 func execK6SyncTest(vus string, duration string, url string, test string, file string) (string, error) {
 	util.Log.Info("Executing test ", test, " in ", url, " (vus/duration: ", vus, "/", duration, "s)")
 	msg, err := util.ShellSilent(`k6 run --vus %s --duration %ss --env TEST_URL="%s" --summary-export %s %s/k6/%s`, vus, duration, url, file, basedir, test)
@@ -631,32 +668,52 @@ func execK6SyncTest(vus string, duration string, url string, test string, file s
 	return msg, nil
 }
 
-func generateSimpleTrafficLoadK6(protocol string, app string) (string, error) {
+func generateSimpleTrafficLoadK6(protocol string, app string) error {
 
-	var pid string
 	var url string
 	var err error
 
 	if app == "bookinfo" && protocol == "http" {
-		appName := bookinfoNSPrefix + "1"
-		reportFile := "/tmp/" + appName + ".json"
+
 		routeHost, errRoute := getRouteHost(appName, meshNamespace)
 		if errRoute != nil {
-			return "", fmt.Errorf("route %s not found in namespace %s", appName, meshNamespace)
+			return fmt.Errorf("route %s not found in namespace %s", appName, meshNamespace)
 		} else {
 			url = "https://" + routeHost + "/productpage"
 		}
 		_, err = execK6SyncTest(testVUs, testDuration, url, "http-basic.js", reportFile)
+
+		if err != nil {
+			return err
+		}
+
 	} else {
 		errorMsg := fmt.Errorf("application %s and protocol %s not supported", app, protocol)
-		return "", errorMsg
+		return errorMsg
 	}
+
+	return nil
+}
+
+func readK6File() ([]byte, error) {
+
+	dat, err := os.ReadFile(reportFile)
+	if err != nil {
+		return nil, err
+	}
+
+	return dat, nil
+}
+
+func parseK6Response(response []byte) (K6Response, error) {
+
+	var newResponse K6Response
+
+	err := json.Unmarshal(response, &newResponse)
 
 	if err != nil {
-		return "", err
+		return K6Response{}, err
 	}
 
-	util.Log.Info("TODO: Implement k6 reports parse to obtain AVG p95 SLI and compare with the respective acceptance value ", reqAvg95pAcceptanceTime)
-
-	return pid, nil
+	return newResponse, nil
 }

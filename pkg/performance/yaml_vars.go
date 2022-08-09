@@ -73,4 +73,7 @@ var (
 
 	bookinfoNSPrefix = "bookinfo-"
 	jumpappNSPrefix  = "jumpapp-"
+
+	appName    = bookinfoNSPrefix + "1"
+	reportFile = "/tmp/" + appName + ".json"
 )

@@ -625,6 +625,40 @@ func comparePodsCpu(value1 string, value2 string) (string, error) {
 	}
 }
 
+func checkFailedMetrics(fails int) (string, error) {
+
+	if fails > 0 {
+		msg := fmt.Errorf("There are %v requests failing", fails)
+		return "", msg
+	} else {
+		msg := ("OK: No requests failing")
+		return msg, nil
+	}
+
+}
+
+func compareP95(value1 string, value2 string) (string, error) {
+
+	value1Float, errConver1 := strconv.ParseFloat(value1, 64)
+	if errConver1 != nil {
+		return "", errConver1
+	}
+
+	value2Float, errConver2 := strconv.ParseFloat(value2, 64)
+	if errConver2 != nil {
+		return "", errConver1
+	}
+
+	if value1Float > value2Float {
+		msg := fmt.Errorf("Percentile 95 is %v. Want something lower than %v", value1Float, value2Float)
+		return "", msg
+	} else {
+		msg := ("OK: Percentile 95 " + fmt.Sprintf("%f", value1Float) + " is lower than " + fmt.Sprintf("%f", value2Float) + " in Milicores")
+		return msg, nil
+	}
+
+}
+
 func execK6SyncTest(vus string, duration string, url string, test string, file string) (string, error) {
 	util.Log.Info("Executing test ", test, " in ", url, " (vus/duration: ", vus, "/", duration, "s)")
 	msg, err := util.ShellSilent(`k6 run --vus %s --duration %ss --env TEST_URL="%s" --summary-export %s %s/k6/%s`, vus, duration, url, file, basedir, test)

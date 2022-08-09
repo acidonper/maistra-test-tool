@@ -30,18 +30,22 @@ func GenerateTrafficLoadK6(t *testing.T) {
 		t.FailNow()
 	}
 
-	var p95 string
-
-	if res.Metrics.Checks.Fails > 0 {
-		err = fmt.Errorf("There were %v fails in the tests", res.Metrics.Checks.Fails)
+	result, err := checkFailedMetrics(res.Metrics.Checks.Fails)
+	if err != nil {
 		util.Log.Error(err)
 		t.Error(err)
 		t.FailNow()
 	} else {
-		p95 = fmt.Sprintf("%f", res.Metrics.HTTPReqReceiving.P95)
+		util.Log.Info("%v", result)
 	}
 
-	if p95 > reqAvg95pAcceptanceTime {
-		util.Log.Error("Acceptance time exceeded")
+	p95 := res.Metrics.HTTPReqReceiving.P95
+	result, err = compareP95(fmt.Sprintf("%f", p95), reqAvg95pAcceptanceTime)
+	if err != nil {
+		util.Log.Error(err)
+		t.Error(err)
+		t.FailNow()
+	} else {
+		util.Log.Info("%v", result)
 	}
 }

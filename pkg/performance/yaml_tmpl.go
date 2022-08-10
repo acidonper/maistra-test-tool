@@ -16,7 +16,9 @@ spec:
       protocol: HTTP
     hosts:
     - {{ .Host }}
----
+`
+
+	bookinfoVirtualServiceTemplate = `
 apiVersion: networking.istio.io/v1alpha3
 kind: VirtualService
 metadata:

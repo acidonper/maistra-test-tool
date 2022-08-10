@@ -17,8 +17,11 @@ func (b *Bookinfo) BookinfoInstall(mtls bool) {
 	CheckPodRunning(b.Namespace, "app=reviews,version=v3")
 	CheckPodRunning(b.Namespace, "app=productpage")
 
-	util.Log.Debug("Creating Gateway and VirtualService from template")
+	util.Log.Debug("Creating Gateway from template")
 	util.KubeApplyContents(b.Namespace, util.RunTemplate(bookinfoGatewayTemplate, b))
+
+	util.Log.Debug("Creating VirtualService from template")
+	util.KubeApplyContents(b.Namespace, util.RunTemplate(bookinfoVirtualServiceTemplate, b))
 
 	util.Log.Debug("Creating Route from template")
 	r := Route{Name: b.Namespace, Namespace: meshNamespace, Host: b.Host, Service: "istio-ingressgateway"}

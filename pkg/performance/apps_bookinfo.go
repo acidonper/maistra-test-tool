@@ -6,40 +6,87 @@ import (
 	"github.com/maistra/maistra-test-tool/pkg/util"
 )
 
-func (b *Bookinfo) BookinfoInstall(mtls bool) {
+func (b *Bookinfo) BookinfoInstall(mtls bool) error {
 	util.Log.Info("Deploying Bookinfo in ", b.Namespace)
-	util.KubeApplySilent(b.Namespace, bookinfoYaml)
+	err := util.KubeApplySilent(b.Namespace, bookinfoYaml)
+	if err != nil {
+		return err
+	}
 	time.Sleep(time.Duration(5) * time.Second)
-	CheckPodRunning(b.Namespace, "app=details")
-	CheckPodRunning(b.Namespace, "app=ratings")
-	CheckPodRunning(b.Namespace, "app=reviews,version=v1")
-	CheckPodRunning(b.Namespace, "app=reviews,version=v2")
-	CheckPodRunning(b.Namespace, "app=reviews,version=v3")
-	CheckPodRunning(b.Namespace, "app=productpage")
+	err = CheckPodRunning(b.Namespace, "app=details")
+	if err != nil {
+		return err
+	}
+	err = CheckPodRunning(b.Namespace, "app=ratings")
+	if err != nil {
+		return err
+	}
+	err = CheckPodRunning(b.Namespace, "app=reviews,version=v1")
+	if err != nil {
+		return err
+	}
+	err = CheckPodRunning(b.Namespace, "app=reviews,version=v2")
+	if err != nil {
+		return err
+	}
+	err = CheckPodRunning(b.Namespace, "app=reviews,version=v3")
+	if err != nil {
+		return err
+	}
+	err = CheckPodRunning(b.Namespace, "app=productpage")
+	if err != nil {
+		return err
+	}
 
 	util.Log.Debug("Creating Gateway from template")
-	util.KubeApplyContents(b.Namespace, util.RunTemplate(bookinfoGatewayTemplate, b))
+	err = util.KubeApplyContents(b.Namespace, util.RunTemplate(bookinfoGatewayTemplate, b))
+	if err != nil {
+		return err
+	}
 
 	util.Log.Debug("Creating VirtualService from template")
-	util.KubeApplyContents(b.Namespace, util.RunTemplate(bookinfoVirtualServiceTemplate, b))
+	err = util.KubeApplyContents(b.Namespace, util.RunTemplate(bookinfoVirtualServiceTemplate, b))
+	if err != nil {
+		return err
+	}
 
 	util.Log.Debug("Creating Route from template")
 	r := Route{Name: b.Namespace, Namespace: meshNamespace, Host: b.Host, Service: "istio-ingressgateway"}
-	util.KubeApplyContents(meshNamespace, util.RunTemplate(bookinfoSimpleHTTPRouteTemplate, r))
+	err = util.KubeApplyContents(meshNamespace, util.RunTemplate(bookinfoSimpleHTTPRouteTemplate, r))
+	if err != nil {
+		return err
+	}
 
 	util.Log.Debug("Creating destination rules all")
 	if mtls {
-		util.KubeApplySilent(b.Namespace, bookinfoRuleAllTLSYaml)
+		err = util.KubeApplySilent(b.Namespace, bookinfoRuleAllTLSYaml)
+		if err != nil {
+			return err
+		}
 	} else {
-		util.KubeApplySilent(b.Namespace, bookinfoRuleAllYaml)
+		err = util.KubeApplySilent(b.Namespace, bookinfoRuleAllYaml)
+		if err != nil {
+			return err
+		}
 	}
 	time.Sleep(time.Duration(10) * time.Second)
+	return nil
 }
 
-func (b *Bookinfo) BookinfoUninstall() {
+func (b *Bookinfo) BookinfoUninstall() error {
 	util.Log.Info("Cleanup Bookinfo in ", b.Namespace)
-	util.KubeDelete(b.Namespace, bookinfoRuleAllYaml)
-	util.KubeDelete(b.Namespace, bookinfoGateway)
-	util.KubeDelete(b.Namespace, bookinfoYaml)
+	err := util.KubeDelete(b.Namespace, bookinfoRuleAllYaml)
+	if err != nil {
+		return err
+	}
+	err = util.KubeDelete(b.Namespace, bookinfoGateway)
+	if err != nil {
+		return err
+	}
+	err = util.KubeDelete(b.Namespace, bookinfoYaml)
+	if err != nil {
+		return err
+	}
 	time.Sleep(time.Duration(10) * time.Second)
+	return nil
 }

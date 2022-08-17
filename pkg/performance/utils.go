@@ -297,7 +297,10 @@ func createAppBundle(app string, number int) error {
 			}
 			host := "bookinfo." + nsName + "." + ocpDomain
 			bookinfo := Bookinfo{Name: nsName, Namespace: nsName, Host: host}
-			bookinfo.BookinfoInstall(false)
+			err = bookinfo.BookinfoInstall(false)
+			if err != nil {
+				return err
+			}
 		case "jumpapp":
 			nsName = bookinfoNSPrefix + strconv.Itoa(i)
 			err := createNSMesh(nsName)
@@ -305,7 +308,10 @@ func createAppBundle(app string, number int) error {
 				return err
 			}
 			jumpapp := JumpApp{Namespace: nsName}
-			jumpapp.JumpappInstall()
+			err = jumpapp.JumpappInstall()
+			if err != nil {
+				return err
+			}
 		default:
 			return fmt.Errorf("application " + app + " not supported (bookinfo or jumpapp)")
 		}

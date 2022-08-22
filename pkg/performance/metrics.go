@@ -67,7 +67,7 @@ func TestXDSErrors(t *testing.T) {
 		for i := 0; i < len(xdsErrorValue); i++ {
 			if xdsErrorValue[i] != "0" {
 				util.Log.Error(err)
-				t.Errorf("XDS has errors. Failure in metric: ", metric)
+				t.Error("XDS has errors. Failure in metric: ", metric)
 				t.FailNow()
 			} else {
 				util.Log.Info("OK: ", xdsErrorValue[i], " errors -- ", usage)

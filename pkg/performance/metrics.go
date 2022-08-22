@@ -45,6 +45,36 @@ func TestXDSPushes(t *testing.T) {
 	}
 }
 
+func TestXDSErrors(t *testing.T) {
+	util.Log.Info("** TEST: TestXDSErrors")
+	// xds_reject_metrics := map[string]string{"xds_cdsrej": "Cluster Discovery Service", "xds_edsrej": "Endpoint Discovery Service", "xds_rdsrej": "Route Discovery Service", "xds_ldsrej": "Listener Discovery Service", "xds_write_timeouts": "Pilot XDS response write timeouts", "pilot_total_xds_internal_errors": "Internal XDS errors in pilot", "pilot_total_xds_rejects": ""}
+	xds_reject_metrics := map[string]string{"xds_cdsrej": "Cluster Discovery Service", "xds_edsrej": "Endpoint Discovery Service", "xds_rdsrej": "Route Discovery Service", "xds_ldsrej": "Listener Discovery Service"}
+	for metric, usage := range xds_reject_metrics {
+		xdsError, err := getMetricPrometheusMesh(metric)
+		if err != nil {
+			util.Log.Error(err)
+			t.Error(err)
+			t.FailNow()
+		}
+
+		xdsErrorValue, err := parsePromResponse([]byte(xdsError))
+		if err != nil {
+			util.Log.Error(err)
+			t.Error(err)
+			t.FailNow()
+		}
+
+		for i := 0; i < len(xdsErrorValue); i++ {
+			if xdsErrorValue[i] != "0" {
+				util.Log.Error(err)
+				t.Errorf("XDS has errors. Failure in metric: ", metric)
+				t.FailNow()
+			} else {
+				util.Log.Info("OK: ", xdsErrorValue[i], " errors -- ", usage)
+			}
+		}
+	}
+}
 func TestIstiodMem(t *testing.T) {
 	util.Log.Info("** TEST: TestIstiodMem")
 

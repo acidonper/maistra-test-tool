@@ -103,6 +103,13 @@ spec:
         env:  
           - name: APP_REF_NAME
             value: jump-app
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "150m"
+          limits:
+            memory: "250Mi"
+            cpu: "250m"
 ---
 # Source: jump-app/charts/jump-app-micros/templates/jump-app/deployment.yaml
 apiVersion: apps/v1
@@ -137,6 +144,13 @@ spec:
         env:  
           - name: APP_REF_NAME
             value: jump-app
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "150m"
+          limits:
+            memory: "250Mi"
+            cpu: "250m"
 ---
 # Source: jump-app/charts/jump-app-micros/templates/jump-app/deployment.yaml
 apiVersion: apps/v1
@@ -171,6 +185,13 @@ spec:
         env:  
           - name: APP_REF_NAME
             value: jump-app
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "150m"
+          limits:
+            memory: "250Mi"
+            cpu: "250m"
 ---
 # Source: jump-app/charts/jump-app-micros/templates/jump-app/deployment.yaml
 apiVersion: apps/v1
@@ -207,3 +228,10 @@ spec:
         env:  
           - name: APP_REF_NAME
             value: jump-app
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "150m"
+          limits:
+            memory: "250Mi"
+            cpu: "250m"

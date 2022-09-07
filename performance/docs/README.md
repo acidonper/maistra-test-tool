@@ -132,6 +132,8 @@ Clean up the CreateTestCPObjects test objects deployed previously.
 
 Create a set of applications in order to prepare the data plane tests environment. The number of application is defined by the **TESTDPAPPS** environment variable.
 
+It is possible to deploy a certain number of application to fill the cluster using all the compute resoureces available. In order to enable this option, it is required to define **TESTDPAPPSFILL** a **true**. It is important to bear in mind that *TESTDPAPPS* environment variable will be ignored.
+
 ### A7 - GenerateTrafficLoadK6
 
 Execute a k6 load test in order to generate applications' load. The idea is to emulate a real flow situation for extracting the performance metrics of the current Openshift Service Mesh architecture deployed.

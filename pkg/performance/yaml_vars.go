@@ -7,14 +7,15 @@ import (
 )
 
 var (
-	smcpName      string = util.Getenv("SMCPNAME", "basic")
-	meshNamespace string = util.Getenv("MESHNAMESPACE", "istio-system")
-	appNSPrefix   string = util.Getenv("APPNSPREFIX", "app-perf-test")
-	nsCountBundle string = util.Getenv("NSCOUNTBUNDLE", "10,15,20")
-	testCPApps    string = util.Getenv("TESTCPAPPS", "2")
-	testDPApps    string = util.Getenv("TESTDPAPPS", "5")
-	testVUs       string = util.Getenv("TESTVUS", "1")
-	testDuration  string = util.Getenv("TESTDURATION", "30")
+	smcpName       string = util.Getenv("SMCPNAME", "basic")
+	meshNamespace  string = util.Getenv("MESHNAMESPACE", "istio-system")
+	appNSPrefix    string = util.Getenv("APPNSPREFIX", "app-perf-test")
+	nsCountBundle  string = util.Getenv("NSCOUNTBUNDLE", "10,15,20")
+	testCPApps     string = util.Getenv("TESTCPAPPS", "2")
+	testDPApps     string = util.Getenv("TESTDPAPPS", "5")
+	testDPAppsFill string = util.Getenv("TESTDPAPPSFILL", "false")
+	testVUs        string = util.Getenv("TESTVUS", "1")
+	testDuration   string = util.Getenv("TESTDURATION", "30")
 )
 
 var (
@@ -49,8 +50,9 @@ var (
 )
 
 var (
-	bytesToMegaBytes int     = 1000000
-	coresToMilicores float64 = 1000
+	bytesToMegaBytes     int     = 1000000
+	MegaBytesToKiloBytes int     = 1000
+	coresToMilicores     float64 = 1000
 )
 
 var (
@@ -67,13 +69,18 @@ var (
 	bookinfoGateway        = fmt.Sprintf("%s/bookinfo/bookinfo-gateway.yaml", basedir)
 	bookinfoRuleAllYaml    = fmt.Sprintf("%s/bookinfo/destination-rule-all.yaml", basedir)
 	bookinfoRuleAllTLSYaml = fmt.Sprintf("%s/bookinfo/destination-rule-all-mtls.yaml", basedir)
+	bookinfoTotalCPU       = "600"  // (50 + 50 + 50 + 50 + 50 + 50) * 2
+	bookinfoTotalMem       = "1134" // 250 + 250 + 250 + 128 + 128 + 128
 
 	jumpappYaml       = fmt.Sprintf("%s/jumpapp/jumpapp.yaml", basedir)
 	jumpappNetworking = fmt.Sprintf("%s/jumpapp/jumpapp-sm.yaml", basedir)
+	jumpappTotalCPU   = "1000" // 250 x 4
+	jumpappTotalMem   = "1000" // 250 x 4
 
 	bookinfoNSPrefix = "bookinfo-"
 	jumpappNSPrefix  = "jumpapp-"
 
-	appName    = bookinfoNSPrefix + "1"
-	reportFile = "/tmp/" + appName + ".json"
+	appName              = bookinfoNSPrefix + "1"
+	appFillClusterNumber = 0
+	reportFile           = "/tmp/" + appName + ".json"
 )

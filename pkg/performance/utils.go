@@ -48,6 +48,99 @@ func getRouteHost(route string, namespace string) (string, error) {
 	return msg, nil
 }
 
+func getOCPNodeNames(role string) (string, error) {
+	util.Log.Debug("Getting Node Names with role", role)
+	msg, err := util.ShellSilent(`oc get nodes -l node-role.kubernetes.io/%s="" -o go-template='{{range .items}}{{.metadata.name}},{{end}}'`, role)
+	if err != nil {
+		return "", err
+	}
+	return msg, nil
+}
+
+func getOCPNodeAllocatableCPU(node string) (string, error) {
+	util.Log.Debug("Getting Node free CPU: ", node)
+	cpu, err := util.ShellSilent(`oc get nodes %s --template='{{ .status.allocatable.cpu }}'`, node)
+	if err != nil {
+		return "", err
+	}
+	return cpu, nil
+}
+
+func getOCPNodeAllocatableMem(node string) (string, error) {
+	util.Log.Debug("Getting Node free Memory: ", node)
+	cpu, err := util.ShellSilent(`oc get nodes %s --template='{{ .status.allocatable.memory }}'`, node)
+	if err != nil {
+		return "", err
+	}
+	return cpu, nil
+}
+
+func getOCPNodeFreeCPU(node string) (int, error) {
+	util.Log.Debug("Getting Node free CPU: ", node)
+
+	// Obtain Allocatable CPU
+	cpuAllocatable, err := getOCPNodeAllocatableCPU(node)
+	if err != nil {
+		return 0, err
+	}
+
+	// Obtain Consumed CPU
+	cpuConsumedtmp, err := util.ShellSilent(`oc adm top node %s --no-headers`, node)
+	if err != nil {
+		return 0, err
+	}
+	cpuConsumed := strings.Split(cpuConsumedtmp, "   ")
+
+	// Calculate free CPU
+	cpuAllocatableData := strings.Split(cpuAllocatable, "m")
+	cpuAllocatableInt, err := strconv.Atoi(strings.TrimSpace(cpuAllocatableData[0]))
+	if err != nil {
+		return 0, err
+	}
+	cpuConsumedData := strings.Split(cpuConsumed[1], "m")
+	cpuConsumedDataInt, err := strconv.Atoi(strings.TrimSpace(cpuConsumedData[0]))
+	if err != nil {
+		return 0, err
+	}
+	cpuFree := cpuAllocatableInt - cpuConsumedDataInt
+
+	// Return Free CPU in milicores
+	return cpuFree, nil
+}
+
+func getOCPNodeFreeMem(node string) (int, error) {
+	util.Log.Debug("Getting Node free Mem: ", node)
+
+	// Obtain Allocatable Mem
+	memAllocatable, err := getOCPNodeAllocatableMem(node)
+	if err != nil {
+		return 0, err
+	}
+
+	// Obtain Consumed Mem
+	memConsumedtmp, err := util.ShellSilent(`oc adm top node %s --no-headers`, node)
+	if err != nil {
+		return 0, err
+	}
+	memConsumed := strings.Split(memConsumedtmp, "   ")
+
+	// Calculate free Mem
+	memAllocatableData := strings.Split(memAllocatable, "Ki")
+	memAllocatableInt, err := strconv.Atoi(strings.TrimSpace(memAllocatableData[0]))
+	if err != nil {
+		return 0, err
+	}
+	memConsumedData := strings.Split(memConsumed[3], "Mi")
+	memConsumedDataInt, err := strconv.Atoi(strings.TrimSpace(memConsumedData[0]))
+	if err != nil {
+		return 0, err
+	}
+	memFree := memAllocatableInt/MegaBytesToKiloBytes - memConsumedDataInt
+
+	// Rturn Free Memory in Megabytes
+	return memFree, nil
+}
+
 func getOCPAppsDomain() (string, error) {
 	util.Log.Debug("Getting Openshift Apps Domain")
 	exampleRoute, err := getRouteHost("console", "openshift-console")
@@ -251,8 +344,14 @@ func createNSBundle(min int, max int, prefix string) error {
 	return nil
 }
 
-func deleteAppBundle(app string, number int) error {
+func deleteAppBundle(app string, number int, plane string) error {
 	util.Log.Info("Deleting ", app, " applications: ", strconv.Itoa(number))
+
+	// Calculate number of application to fill the cluster if it is required
+	if testDPAppsFill == "true" && plane == "dataplane" {
+		number = appFillClusterNumber
+		util.Log.Info("Deleting ", app, " applications that filled the Openshift clusters: ", strconv.Itoa(number))
+	}
 
 	// Creating the respective number of apps
 	for i := 1; i <= number; i++ {
@@ -276,8 +375,18 @@ func deleteAppBundle(app string, number int) error {
 	return nil
 }
 
-func createAppBundle(app string, number int) error {
+func createAppBundle(app string, number int, plane string) error {
 	util.Log.Info("Deploying ", app, " applications: ", strconv.Itoa(number))
+
+	// Calculate number of application to fill the cluster if it is required
+	if testDPAppsFill == "true" && plane == "dataplane" {
+		apps, _ := calculateAppsFillCluster(app)
+		number = apps
+		util.Log.Info("Deploying ", app, " applications to fill the Openshift clusters: ", strconv.Itoa(number))
+
+		// Save as global variable de number of applications
+		appFillClusterNumber = apps
+	}
 
 	// Creating the respective number of apps
 	for i := 1; i <= number; i++ {
@@ -722,4 +831,74 @@ func parseK6Response(response []byte) (K6Response, error) {
 	}
 
 	return newResponse, nil
+}
+
+func getOCPWorkerNodesFreeResources() (int, int, error) {
+
+	// Global Vars
+	totalCPUMilicores := 0
+	totalMemMegabytes := 0
+
+	// Get pods depending on type of role
+	workers, err := getOCPNodeNames("worker")
+	if err != nil {
+		return 0, 0, err
+	}
+
+	// Generate node list
+	workersList := strings.Split(workers, ",")
+
+	// Obtain CPU and MEM for every node
+	for _, s := range workersList {
+
+		if s != "" {
+			cpu, err := getOCPNodeFreeCPU(s)
+			if err != nil {
+				return 0, 0, err
+			}
+			mem, err := getOCPNodeFreeMem(s)
+			if err != nil {
+				return 0, 0, err
+			}
+			totalCPUMilicores = totalCPUMilicores + cpu
+			totalMemMegabytes = totalMemMegabytes + mem
+		}
+
+	}
+
+	return totalCPUMilicores, totalMemMegabytes, nil
+}
+
+func calculateAppsFillCluster(app string) (int, error) {
+
+	// Obtain free resources in the OCP Cluster
+	cpu, mem, err := getOCPWorkerNodesFreeResources()
+	if err != nil {
+		return 0, err
+	}
+
+	// Obtain resources consumed by the application
+	cpuLimit := 0
+	memLimit := 0
+
+	switch app {
+	case "bookinfo":
+		cpuLimit, _ = strconv.Atoi(bookinfoTotalCPU)
+		memLimit, _ = strconv.Atoi(bookinfoTotalMem)
+	case "jumpapp":
+		cpuLimit, _ = strconv.Atoi(jumpappTotalCPU)
+		memLimit, _ = strconv.Atoi(jumpappTotalMem)
+	default:
+		return 0, fmt.Errorf("application " + app + " not supported (bookinfo or jumpapp)")
+	}
+
+	// Calculate the number of apps by mem and cpu and return the lowest
+	cpuNumApp := cpu / cpuLimit
+	memNumApp := mem / memLimit
+	if cpuNumApp < memNumApp {
+		return cpuNumApp, nil
+	} else {
+		return memNumApp, nil
+	}
+
 }

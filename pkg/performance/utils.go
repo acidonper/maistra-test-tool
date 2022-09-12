@@ -345,7 +345,10 @@ func createNSBundle(min int, max int, prefix string) error {
 }
 
 func deleteAppBundle(app string, number int, plane string) error {
-	util.Log.Info("Deleting ", app, " applications: ", strconv.Itoa(number))
+
+	if testDPAppsFill == "false" && plane == "dataplane" {
+		util.Log.Info("Deleting ", app, " applications: ", strconv.Itoa(number))
+	}
 
 	// Calculate number of application to fill the cluster if it is required
 	if testDPAppsFill == "true" && plane == "dataplane" {
@@ -376,7 +379,10 @@ func deleteAppBundle(app string, number int, plane string) error {
 }
 
 func createAppBundle(app string, number int, plane string) error {
-	util.Log.Info("Deploying ", app, " applications: ", strconv.Itoa(number))
+
+	if testDPAppsFill == "false" && plane == "dataplane" {
+		util.Log.Info("Deploying ", app, " applications: ", strconv.Itoa(number))
+	}
 
 	// Calculate number of application to fill the cluster if it is required
 	if testDPAppsFill == "true" && plane == "dataplane" {

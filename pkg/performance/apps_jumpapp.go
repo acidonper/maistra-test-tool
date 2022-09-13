@@ -6,23 +6,49 @@ import (
 	"github.com/maistra/maistra-test-tool/pkg/util"
 )
 
-func (b *JumpApp) JumpappInstall() {
+func (b *JumpApp) JumpappInstall() error {
 	util.Log.Info("Deploying JumpAppin ", b.Namespace)
-	util.KubeApply(b.Namespace, jumpappYaml)
+	err := util.KubeApply(b.Namespace, jumpappYaml)
+	if err != nil {
+		return err
+	}
 	time.Sleep(time.Duration(5) * time.Second)
-	CheckPodRunning(b.Namespace, "app=back-golang")
-	CheckPodRunning(b.Namespace, "app=back-python")
-	CheckPodRunning(b.Namespace, "app=back-quarkus")
-	CheckPodRunning(b.Namespace, "app=back-springboot")
+	err = CheckPodRunning(b.Namespace, "app=back-golang")
+	if err != nil {
+		return err
+	}
+	err = CheckPodRunning(b.Namespace, "app=back-python")
+	if err != nil {
+		return err
+	}
+	err = CheckPodRunning(b.Namespace, "app=back-quarkus")
+	if err != nil {
+		return err
+	}
+	err = CheckPodRunning(b.Namespace, "app=back-springboot")
+	if err != nil {
+		return err
+	}
 
-	util.KubeApply(b.Namespace, jumpappNetworking)
+	err = util.KubeApply(b.Namespace, jumpappNetworking)
+	if err != nil {
+		return err
+	}
 
 	time.Sleep(time.Duration(10) * time.Second)
+	return nil
 }
 
-func (b *JumpApp) JumpappUninstall() {
+func (b *JumpApp) JumpappUninstall() error {
 	util.Log.Info("Cleanup JumpApp in ", b.Namespace)
-	util.KubeDelete(b.Namespace, jumpappNetworking)
-	util.KubeDelete(b.Namespace, jumpappYaml)
+	err := util.KubeDelete(b.Namespace, jumpappNetworking)
+	if err != nil {
+		return err
+	}
+	err = util.KubeDelete(b.Namespace, jumpappYaml)
+	if err != nil {
+		return err
+	}
 	time.Sleep(time.Duration(10) * time.Second)
+	return nil
 }

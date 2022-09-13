@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/url"
 	"os"
@@ -68,11 +69,11 @@ func getOCPNodeAllocatableCPU(node string) (string, error) {
 
 func getOCPNodeAllocatableMem(node string) (string, error) {
 	util.Log.Debug("Getting Node free Memory: ", node)
-	cpu, err := util.ShellSilent(`oc get nodes %s --template='{{ .status.allocatable.memory }}'`, node)
+	mem, err := util.ShellSilent(`oc get nodes %s --template='{{ .status.allocatable.memory }}'`, node)
 	if err != nil {
 		return "", err
 	}
-	return cpu, nil
+	return mem, nil
 }
 
 func getOCPNodeFreeCPU(node string) (int, error) {
@@ -125,20 +126,65 @@ func getOCPNodeFreeMem(node string) (int, error) {
 	memConsumed := strings.Split(memConsumedtmp, "   ")
 
 	// Calculate free Mem
-	memAllocatableData := strings.Split(memAllocatable, "Ki")
-	memAllocatableInt, err := strconv.Atoi(strings.TrimSpace(memAllocatableData[0]))
+	memAllocatableBytes, err := getMemInBytes(memAllocatable)
 	if err != nil {
 		return 0, err
 	}
-	memConsumedData := strings.Split(memConsumed[3], "Mi")
-	memConsumedDataInt, err := strconv.Atoi(strings.TrimSpace(memConsumedData[0]))
+	memConsumedBytes, err := getMemInBytes(memConsumed[3])
 	if err != nil {
 		return 0, err
 	}
-	memFree := memAllocatableInt/MegaBytesToKiloBytes - memConsumedDataInt
+	memFree := memAllocatableBytes - memConsumedBytes
 
-	// Rturn Free Memory in Megabytes
-	return memFree, nil
+	memFreeMegaBytes := memFree / math.Pow(2, 20)
+
+	// Return Free Memory in MegaBytes
+	return int(memFreeMegaBytes), nil
+}
+
+func getMemInBytes(mem string) (float64, error) {
+
+	var v, u []rune
+	for _, c := range mem {
+		switch {
+		case c >= 'A' && c <= 'Z':
+			u = append(u, c)
+		case c >= 'a' && c <= 'z':
+			u = append(u, c)
+		case c >= '0' && c <= '9':
+			v = append(v, c)
+		}
+	}
+
+	unit := string(u)
+	value, err := strconv.ParseFloat(string(v), 64)
+	if err != nil {
+		return 0, err
+	}
+
+	//Hacer las conversiones con Gi, Mi, Ki, G, K, M, m
+	switch {
+	case unit == "Gi":
+		value = value * math.Pow(2, 30)
+	case unit == "Mi":
+		value = value * math.Pow(2, 20)
+	case unit == "Ki":
+		value = value * math.Pow(2, 10)
+	case unit == "G":
+		value = value * math.Pow(10, 9)
+	case unit == "M":
+		value = value * math.Pow(10, 6)
+	case unit == "K":
+		value = value * math.Pow(10, 3)
+	case unit == "m":
+		value = value / 1000
+	default:
+		value = 0
+		err = fmt.Errorf("Memory unit not compatible")
+	}
+
+	return value, err
+
 }
 
 func getOCPAppsDomain() (string, error) {

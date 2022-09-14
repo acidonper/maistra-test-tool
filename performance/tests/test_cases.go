@@ -34,6 +34,10 @@ var performanceCases = []testing.InternalTest{
 		F:    performance.TestXDSPushes,
 	},
 	testing.InternalTest{
+		Name: "CP2.2",
+		F:    performance.TestXDSErrors,
+	},
+	testing.InternalTest{
 		Name: "CP3.1",
 		F:    performance.TestIstiodMem,
 	},

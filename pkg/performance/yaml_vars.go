@@ -34,8 +34,15 @@ var (
 
 var (
 	prometheusMeshAPIMap map[string]string = map[string]string{
-		"xds_ppctc": "pilot_proxy_convergence_time_count",
-		"xds_ppctb": "pilot_proxy_convergence_time_bucket{le=\"" + xdsPushAcceptanceTime + "\"}",
+		"xds_ppctc":  "pilot_proxy_convergence_time_count",
+		"xds_ppctb":  "pilot_proxy_convergence_time_bucket{le=\"" + xdsPushAcceptanceTime + "\"}",
+		"xds_cdsrej": "sum(pilot_xds_cds_reject{app='istiod'}) or (absent(pilot_xds_cds_reject{app='istiod'}) - 1)",
+		"xds_edsrej": "sum(pilot_xds_eds_reject{app='istiod'}) or (absent(pilot_xds_eds_reject{app='istiod'}) - 1)",
+		"xds_rdsrej": "sum(pilot_xds_rds_reject{app='istiod'}) or (absent(pilot_xds_rds_reject{app='istiod'}) - 1)",
+		"xds_ldsrej": "sum(pilot_xds_lds_reject{app='istiod'}) or (absent(pilot_xds_lds_reject{app='istiod'}) - 1)",
+		// "xds_write_timeouts":              "sum(rate(pilot_xds_write_timeout{app='istiod'}[1m]))", ## Uncomment for OSSM > 2.1
+		// "pilot_total_xds_internal_errors": "sum(rate(pilot_total_xds_internal_errors{app='istiod'}[1m]))", ## Uncomment for OSSM > 2.1
+		// "pilot_total_xds_rejects":         "sum(rate(pilot_total_xds_rejects{app='istiod'}[1m]))", ## Uncomment for OSSM > 2.1
 	}
 	prometheusAPIMap map[string]string = map[string]string{
 		"istiod_mem":        "sum(container_memory_working_set_bytes{pod=~\"istiod.*\",namespace=\"" + meshNamespace + "\",container=\"\",}) BY (pod, namespace)",

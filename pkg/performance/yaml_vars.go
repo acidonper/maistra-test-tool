@@ -58,8 +58,8 @@ var (
 
 var (
 	bytesToMegaBytes     int     = 1000000
-	MegaBytesToKiloBytes int     = 1000
 	coresToMilicores     float64 = 1000
+	MegaBytesToKiloBytes int     = 1000
 )
 
 var (
@@ -72,8 +72,11 @@ var (
 )
 
 var (
+	supportedApps              = []string{"bookinfo", "jumpapp"}
+	trafficLoadApp      string = util.Getenv("TRAFFICLOADAPP", "bookinfo")
+	trafficLoadProtocol string = util.Getenv("TRAFFICLOADPROTOCOL", "http")
+
 	bookinfoYaml           = fmt.Sprintf("%s/bookinfo/bookinfo.yaml", basedir)
-	bookinfoGateway        = fmt.Sprintf("%s/bookinfo/bookinfo-gateway.yaml", basedir)
 	bookinfoRuleAllYaml    = fmt.Sprintf("%s/bookinfo/destination-rule-all.yaml", basedir)
 	bookinfoRuleAllTLSYaml = fmt.Sprintf("%s/bookinfo/destination-rule-all-mtls.yaml", basedir)
 	bookinfoTotalCPU       = "600"  // (50 + 50 + 50 + 50 + 50 + 50) * 2

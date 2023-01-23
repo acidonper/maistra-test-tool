@@ -2,6 +2,9 @@ package tests
 
 import (
 	"testing"
+
+	"github.com/maistra/maistra-test-tool/pkg/util"
+	"github.com/sirupsen/logrus"
 )
 
 // this function is used for matching command line argument <test case name>,
@@ -11,5 +14,6 @@ func matchString(a, b string) (bool, error) {
 }
 
 func TestMain(m *testing.M) {
+	util.Log.SetLevel(logrus.InfoLevel) // To be able to change logging level. Leave InfoLevel by default
 	testing.Main(matchString, performanceCases, nil, nil)
 }

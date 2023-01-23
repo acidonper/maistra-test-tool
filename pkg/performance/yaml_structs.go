@@ -68,6 +68,14 @@ type K6Response struct {
 			P90 float64 `json:"p(90)"`
 			P95 float64 `json:"p(95)"`
 		} `json:"http_req_duration"`
+		GrpcReqDuration struct {
+			Max float64 `json:"max"`
+			P90 float64 `json:"p(90)"`
+			P95 float64 `json:"p(95)"`
+			Avg float64 `json:"avg"`
+			Min float64 `json:"min"`
+			Med float64 `json:"med"`
+		} `json:"grpc_req_duration"`
 		HTTPReqConnecting struct {
 			P95 float64 `json:"p(95)"`
 			Avg float64 `json:"avg"`

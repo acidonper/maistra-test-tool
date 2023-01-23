@@ -1,0 +1,169 @@
+# Source: jump-app/charts/jump-app-micros/templates/jump-app/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: back-golang
+    version: v1
+  name: back-golang
+spec:
+  ports:
+    - name: http-8442
+      port: 8442
+      protocol: 
+      targetPort: 8442
+    - name: tcp-50051
+      port: 50051
+      protocol: 
+      targetPort: 50051   
+  selector:
+    app: back-golang
+    version: v1
+---
+# Source: jump-app/charts/jump-app-micros/templates/jump-app/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: back-python
+    version: v1
+  name: back-python
+spec:
+  ports:
+    - name: http-8444
+      port: 8444
+      protocol: 
+      targetPort: 8080
+    - name: tcp-50052
+      port: 50052
+      protocol: 
+      targetPort: 50052   
+  selector:
+    app: back-python
+    version: v1
+---
+# Source: jump-app/charts/jump-app-micros/templates/jump-app/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: back-springboot
+    version: v1
+  name: back-springboot
+spec:
+  ports:
+    - name: http-8443
+      port: 8443
+      protocol: 
+      targetPort: 8443
+    - name: tcp-50053
+      port: 50053
+      protocol: 
+      targetPort: 50053   
+  selector:
+    app: back-springboot
+    version: v1
+---
+# Source: jump-app/charts/jump-app-micros/templates/jump-app/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: back-golang
+    version: v1
+  name: back-golang
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: back-golang
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: "true"
+      labels:
+        app: back-golang
+        version: v1
+    spec:
+      containers:
+      - image: quay.io/acidonpe/jump-app-back-golang-grpc:latest
+        imagePullPolicy: Always
+        name: back-golang
+        ports:
+          - containerPort: 50051
+            protocol: TCP
+        resources: {}
+        env:  
+          - name: APP_REF_NAME
+            value: jump-app
+---
+# Source: jump-app/charts/jump-app-micros/templates/jump-app/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: back-python
+    version: v1
+  name: back-python
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: back-python
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: "true"
+      labels:
+        app: back-python
+        version: v1
+    spec:
+      containers:
+      - image: quay.io/acidonpe/jump-app-back-python-grpc:latest
+        imagePullPolicy: Always
+        name: back-python
+        ports:
+          - containerPort: 50052
+            protocol: TCP
+        resources: {}
+        env:  
+          - name: APP_REF_NAME
+            value: jump-app  
+          - name: PYTHONPATH
+            value: ./grpcserver
+---
+# Source: jump-app/charts/jump-app-micros/templates/jump-app/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: back-springboot
+    version: v1
+  name: back-springboot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: back-springboot
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: "true"
+      labels:
+        app: back-springboot
+        version: v1
+    spec:
+      containers:
+      - image: quay.io/acidonpe/jump-app-back-springboot-grpc:latest
+        imagePullPolicy: Always
+        name: back-springboot
+        ports:
+          - containerPort: 50053
+            protocol: TCP
+          - containerPort: 8443
+            protocol: TCP
+        resources: {}
+        env:  
+          - name: APP_REF_NAME
+            value: jump-app
+

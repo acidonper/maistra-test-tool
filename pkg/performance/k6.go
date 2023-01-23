@@ -9,7 +9,7 @@ import (
 
 func GenerateTrafficLoadK6(t *testing.T) {
 	util.Log.Info("** TEST: GenerateTrafficLoadK6")
-	err := generateSimpleTrafficLoadK6("http", "bookinfo")
+	err := generateSimpleTrafficLoadK6(trafficLoadProtocol, trafficLoadApp)
 	if err != nil {
 		util.Log.Error(err)
 		t.Error(err)
@@ -43,7 +43,17 @@ func AnalyseLoadK6Output(t *testing.T) {
 		util.Log.Info(result)
 	}
 
-	p95 := res.Metrics.HTTPReqDuration.P95
+	var p95 float64
+	if trafficLoadProtocol == "http" {
+		p95 = res.Metrics.HTTPReqDuration.P95
+	} else if trafficLoadProtocol == "grpc" {
+		p95 = res.Metrics.GrpcReqDuration.P95
+	} else {
+		util.Log.Error("Protocol not valid")
+		t.Error(err)
+		t.FailNow()
+	}
+
 	result, err = compareP95(fmt.Sprintf("%f", p95), reqAvg95pAcceptanceTime)
 	if err != nil {
 		util.Log.Error(err)

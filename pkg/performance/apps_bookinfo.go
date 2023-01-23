@@ -72,21 +72,3 @@ func (b *Bookinfo) BookinfoInstall(mtls bool) error {
 	time.Sleep(time.Duration(10) * time.Second)
 	return nil
 }
-
-func (b *Bookinfo) BookinfoUninstall() error {
-	util.Log.Info("Cleanup Bookinfo in ", b.Namespace)
-	err := util.KubeDelete(b.Namespace, bookinfoRuleAllYaml)
-	if err != nil {
-		return err
-	}
-	err = util.KubeDelete(b.Namespace, bookinfoGateway)
-	if err != nil {
-		return err
-	}
-	err = util.KubeDelete(b.Namespace, bookinfoYaml)
-	if err != nil {
-		return err
-	}
-	time.Sleep(time.Duration(10) * time.Second)
-	return nil
-}

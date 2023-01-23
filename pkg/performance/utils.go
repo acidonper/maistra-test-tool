@@ -162,7 +162,7 @@ func getMemInBytes(mem string) (float64, error) {
 		return 0, err
 	}
 
-	//Hacer las conversiones con Gi, Mi, Ki, G, K, M, m
+	//Make conversions in Gi, Mi, Ki, G, K, M, m
 	switch {
 	case unit == "Gi":
 		value = value * math.Pow(2, 30)
@@ -180,7 +180,7 @@ func getMemInBytes(mem string) (float64, error) {
 		value = value / 1000
 	default:
 		value = 0
-		err = fmt.Errorf("Memory unit not compatible")
+		err = fmt.Errorf("memory unit %v not compatible", unit)
 	}
 
 	return value, err
@@ -234,7 +234,7 @@ func getMeshEgressPods() ([]string, error) {
 }
 
 func deleteNS(namespace string) error {
-	util.Log.Debug("Deleting namespace", namespace)
+	util.Log.Debug("Deleting namespace ", namespace)
 	_, err := util.ShellSilent(`oc delete project %s --wait=true`, namespace)
 	if err != nil {
 		return err
@@ -402,7 +402,7 @@ func deleteAppBundle(app string, number int, plane string) error {
 		util.Log.Info("Deleting ", app, " applications that filled the Openshift clusters: ", strconv.Itoa(number))
 	}
 
-	// Creating the respective number of apps
+	// Deleting the respective number of apps
 	for i := 1; i <= number; i++ {
 		prefix := ""
 
@@ -412,7 +412,7 @@ func deleteAppBundle(app string, number int, plane string) error {
 		case "jumpapp":
 			prefix = jumpappNSPrefix
 		default:
-			return fmt.Errorf("application " + app + " not supported (bookinfo or jumpapp)")
+			return fmt.Errorf("application %s not supported. Accepted: %v", app, supportedApps)
 		}
 
 		nsName := prefix + strconv.Itoa(i)
@@ -432,7 +432,10 @@ func createAppBundle(app string, number int, plane string) error {
 
 	// Calculate number of application to fill the cluster if it is required
 	if testDPAppsFill == "true" && plane == "dataplane" {
-		apps, _ := calculateAppsFillCluster(app)
+		apps, err := calculateAppsFillCluster(app)
+		if err != nil {
+			return err
+		}
 		number = apps
 		util.Log.Info("Deploying ", app, " applications to fill the Openshift clusters: ", strconv.Itoa(number))
 
@@ -474,7 +477,7 @@ func createAppBundle(app string, number int, plane string) error {
 				return err
 			}
 		default:
-			return fmt.Errorf("application " + app + " not supported (bookinfo or jumpapp)")
+			return fmt.Errorf("application %s not supported. Accepted: %v", app, supportedApps)
 		}
 	}
 	return nil
@@ -710,7 +713,7 @@ func CheckPodRunning(n, name string) error {
 			return err
 		}
 		if status != "Running" {
-			util.Log.Debug("%s in namespace %s is not running: %s", pod, n, status)
+			util.Log.Debugf("%s in namespace %s is not running: %s", pod, n, status)
 			ready = false
 		}
 		if !ready {
@@ -723,7 +726,7 @@ func CheckPodRunning(n, name string) error {
 	if err != nil {
 		return err
 	}
-	util.Log.Debug("Got the pod name=%s running!", name)
+	util.Log.Debugf("Got the pod name=%s running!", name)
 	return nil
 }
 
@@ -828,7 +831,9 @@ func compareP95(value1 string, value2 string) (string, error) {
 
 func execK6SyncTest(vus string, duration string, url string, test string, file string) (string, error) {
 	util.Log.Info("Executing test ", test, " in ", url, " (vus/duration: ", vus, "/", duration, "s)")
-	msg, err := util.ShellSilent(`k6 run --vus %s --duration %ss --env TEST_URL="%s" --summary-export %s %s/k6/%s`, vus, duration, url, file, basedir, test)
+	command := fmt.Sprintf(`k6 run --vus %s --duration %ss --env TEST_URL="%s" --summary-export %s %s/k6/%s`, vus, duration, url, file, basedir, test)
+	util.Log.Debug("Launching command: " + command)
+	msg, err := util.ShellSilent(command)
 	if err != nil {
 		return "", err
 	}
@@ -855,7 +860,7 @@ func generateSimpleTrafficLoadK6(protocol string, app string) error {
 		}
 
 	} else {
-		errorMsg := fmt.Errorf("application %s and protocol %s not supported", app, protocol)
+		errorMsg := fmt.Errorf("application %s and protocol %s combination not supported", app, protocol)
 		return errorMsg
 	}
 

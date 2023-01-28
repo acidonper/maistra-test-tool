@@ -851,7 +851,7 @@ func generateSimpleTrafficLoadK6(protocol string, app string) error {
 		if errRoute != nil {
 			return fmt.Errorf("route %s not found in namespace %s", appName, meshNamespace)
 		} else {
-			url = "https://" + routeHost + "/productpage"
+			url = "http://" + routeHost + "/productpage"
 		}
 		_, err = execK6SyncTest(testVUs, testDuration, url, "http-basic.js", reportFile)
 

@@ -12,7 +12,6 @@ func GenerateTrafficLoadK6(t *testing.T) {
 	err := generateSimpleTrafficLoadK6(trafficLoadProtocol, trafficLoadApp)
 	if err != nil {
 		util.Log.Error(err)
-		t.Error(err)
 		t.FailNow()
 	}
 	util.Log.Info("OK: k6 load test executed")
@@ -23,21 +22,18 @@ func AnalyseLoadK6Output(t *testing.T) {
 	dat, err := readK6File()
 	if err != nil {
 		util.Log.Error(err)
-		t.Error(err)
 		t.FailNow()
 	}
 
 	res, err := parseK6Response(dat)
 	if err != nil {
 		util.Log.Error(err)
-		t.Error(err)
 		t.FailNow()
 	}
 
 	result, err := checkFailedMetrics(res.Metrics.Checks.Fails)
 	if err != nil {
 		util.Log.Error(err)
-		t.Error(err)
 		t.FailNow()
 	} else {
 		util.Log.Info(result)
@@ -50,14 +46,12 @@ func AnalyseLoadK6Output(t *testing.T) {
 		p95 = res.Metrics.GrpcReqDuration.P95
 	} else {
 		util.Log.Error("Protocol not valid")
-		t.Error(err)
 		t.FailNow()
 	}
 
 	result, err = compareP95(fmt.Sprintf("%f", p95), reqAvg95pAcceptanceTime)
 	if err != nil {
 		util.Log.Error(err)
-		t.Error(err)
 		t.FailNow()
 	}
 

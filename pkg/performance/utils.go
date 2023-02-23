@@ -23,7 +23,6 @@ func TestSMCP(t *testing.T) {
 	msg, _ := util.ShellSilent(`oc wait --for condition=Ready -n %s smcp/%s --timeout 30s`, meshNamespace, smcpName)
 	if !strings.Contains(msg, "condition met") {
 		util.Log.Error("SMCP not Ready")
-		t.Error("SMCP not Ready")
 		t.FailNow()
 	}
 	util.Log.Info("OK - SMCP ", smcpName, " in namespace ", meshNamespace)
@@ -33,7 +32,6 @@ func TestSMMR(t *testing.T) {
 	msg, _ := util.ShellSilent(`oc wait --for condition=Ready -n %s smmr/default --timeout 30s`, meshNamespace)
 	if !strings.Contains(msg, "condition met") {
 		util.Log.Error("SMMR not Ready")
-		t.Error("SMMR not Ready")
 		t.FailNow()
 	}
 	util.Log.Info("OK - SMMR in namespace ", meshNamespace)
@@ -957,5 +955,4 @@ func calculateAppsFillCluster(app string) (int, error) {
 	} else {
 		return memNumApp, nil
 	}
-
 }

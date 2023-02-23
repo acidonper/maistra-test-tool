@@ -32,7 +32,6 @@ func testNamespaceAdditionTime(index int, acceptanceTime int) error {
 
 	// Check addition time
 	if duration > acceptanceTimeMS {
-		util.Log.Error("Acceptance time exceeded")
 		return fmt.Errorf("acceptance time exceeded")
 	}
 	util.Log.Info("Duration OK: ", duration, " milliseconds")

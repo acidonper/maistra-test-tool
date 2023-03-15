@@ -39,20 +39,20 @@ func (b *Bookinfo) BookinfoInstall(mtls bool) error {
 	}
 
 	util.Log.Debug("Creating Gateway from template")
-	err = util.KubeApplyContents(b.Namespace, util.RunTemplate(bookinfoGatewayTemplate, b))
+	err = util.KubeApplyContentSilent(b.Namespace, util.RunTemplate(bookinfoGatewayTemplate, b))
 	if err != nil {
 		return err
 	}
 
 	util.Log.Debug("Creating VirtualService from template")
-	err = util.KubeApplyContents(b.Namespace, util.RunTemplate(bookinfoVirtualServiceTemplate, b))
+	err = util.KubeApplyContentSilent(b.Namespace, util.RunTemplate(bookinfoVirtualServiceTemplate, b))
 	if err != nil {
 		return err
 	}
 
 	util.Log.Debug("Creating Route from template")
 	r := Route{Name: b.Namespace, Namespace: meshNamespace, Host: b.Host, Service: "istio-ingressgateway"}
-	err = util.KubeApplyContents(meshNamespace, util.RunTemplate(bookinfoSimpleHTTPRouteTemplate, r))
+	err = util.KubeApplyContentSilent(meshNamespace, util.RunTemplate(bookinfoSimpleHTTPRouteTemplate, r))
 	if err != nil {
 		return err
 	}

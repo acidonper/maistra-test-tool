@@ -78,6 +78,9 @@ podman build . -t maistra-test-tool-performance -f performance/Dockerfile
 podman run -it localhost/maistra-test-tool-performance
 ```
 
+## Integrate other apps to the tool
+
+If you want to use other apps besides Bookinfo, you can follow the instructions [here](./HOW_TO_INTEGRATE_APPS.md).
 
 ## Test Cases
 

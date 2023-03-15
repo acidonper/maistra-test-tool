@@ -8,7 +8,7 @@ import (
 
 func (b *JumpApp) JumpappInstall() error {
 	util.Log.Info("Deploying JumpAppin ", b.Namespace)
-	err := util.KubeApply(b.Namespace, jumpappYaml)
+	err := util.KubeApplySilent(b.Namespace, jumpappYaml)
 	if err != nil {
 		return err
 	}
@@ -30,7 +30,7 @@ func (b *JumpApp) JumpappInstall() error {
 		return err
 	}
 
-	err = util.KubeApply(b.Namespace, jumpappNetworking)
+	err = util.KubeApplySilent(b.Namespace, jumpappNetworking)
 	if err != nil {
 		return err
 	}

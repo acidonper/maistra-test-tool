@@ -13,7 +13,6 @@ func CreateTestCPObjects(t *testing.T) {
 	err := createAppBundle(trafficLoadApp, apps, "controlplane")
 	if err != nil {
 		util.Log.Error(err)
-		t.Error(err)
 		t.FailNow()
 	}
 }
@@ -24,7 +23,6 @@ func DeleteTestCPObjects(t *testing.T) {
 	err := deleteAppBundle(trafficLoadApp, apps, "controlplane")
 	if err != nil {
 		util.Log.Error(err)
-		t.Error(err)
 		t.FailNow()
 	}
 }
@@ -35,7 +33,6 @@ func CreateTestDPObjects(t *testing.T) {
 	err := createAppBundle(trafficLoadApp, apps, "dataplane")
 	if err != nil {
 		util.Log.Error(err)
-		t.Error(err)
 		t.FailNow()
 	}
 }
@@ -46,7 +43,6 @@ func DeleteTestDPObjects(t *testing.T) {
 	err := deleteAppBundle(trafficLoadApp, apps, "dataplane")
 	if err != nil {
 		util.Log.Error(err)
-		t.Error(err)
 		t.FailNow()
 	}
 }

@@ -53,26 +53,45 @@ Create a new Go file in the [performance](../../pkg/performance/) package with t
 
 > **TIP:** You only need to install the app, since the tool is going to uninstall it when deleting the namespace.
 
-## Add your app to the creation method
+## Add your app to the creation function
 
-Go to the `createAppBundle` method inside the [utils](../../pkg/performance/utils.go) file and add your new app to the `case`. 
+Go to the `createAppBundle` function inside the [utils](../../pkg/performance/utils.go) file and add your new app to the `case`. 
 
 For your app you will have to:
 
 1. Give a prefix for your namespace. For example: `nsName = bookinfoNSPrefix + strconv.Itoa(i)`
 2. Create the namespaces: `err := createNSMesh(nsName)`
 3. Create all the dynamic info you need using your struct.
-4. Install your app with the method you created.
+4. Install your app with the function you created.
 
 If you need to use some constants. We are storing them in the [`yaml_vars.go`](../../pkg/performance/yaml_vars.go) file.
 
-## Add your app to the traffic load method
+## Add your app to the deletion function
 
-In the same [utils](../../pkg/performance/utils.go) file, go to the `generateSimpleTrafficLoadK6` method and add your app to the `if` with the protocols your app support. 
+Go to the `deleteAppBundle` function inside the [utils](../../pkg/performance/utils.go) file and add your new app to the `case`. The code you will need to add will be like the following example:
+
+```go
+case "bookinfo":
+  prefix = bookinfoNSPrefix
+```
+
+Just add the prefix of your namespaces names and the rest of the code will delete those.
+
+## Add your app to the filling function
+
+Before adding your app to the filling function. You will need to calculate how much you think your app limits are in regard to CPU and Memory. And create the constants in the [`yaml_vars.go`](../../pkg/performance/yaml_vars.go) file. 
+
+> **IMPORTANT:** If your app has several microservices, make the sum of the limits of all of them.
+
+Now go to the `calculateAppsFillCluster` function inside the same [utils](../../pkg/performance/utils.go) file and again add your app to the `switch` using the CPU and Memory limit you calculated before. 
+
+## Add your app to the traffic load function
+
+In the same [utils](../../pkg/performance/utils.go) file, go to the `generateSimpleTrafficLoadK6` function and add your app to the `if` with the protocols your app support. 
 
 > **IMPORTANT:** We only support doing the tests on one protocol at a time. So if your app supports `grpc` and `http`, you will have to create both conditionals in the `if`
 
-In this method, you will need to create the URL to which the `k6` will do the traffic loading and then call the `execK6SyncTest` function. 
+In this function, you will need to create the URL to which the `k6` will do the traffic loading and then call the `execK6SyncTest` function. 
 
 You will also need a script to execute the load testing. If your application is `http` you can use the already created [`http-basic.js`](../../objects/k6/http-basic.js) file or you can create one inside the [k6](../../objects/k6/) objects folder and pass it as a parameter to the `execK6SyncTest` function. If you need more information about `k6` and their scripts, you can find it in their official [documentation](https://k6.io/docs/).
 

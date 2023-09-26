@@ -85,9 +85,9 @@ type K6Response struct {
 			P90 float64 `json:"p(90)"`
 		} `json:"http_req_connecting"`
 		Checks struct {
-			Passes int `json:"passes"`
-			Fails  int `json:"fails"`
-			Value  int `json:"value"`
+			Passes int     `json:"passes"`
+			Fails  int     `json:"fails"`
+			Value  float64 `json:"value"`
 		} `json:"checks"`
 		HTTPReqBlocked struct {
 			P90 float64 `json:"p(90)"`
@@ -111,14 +111,14 @@ type K6Response struct {
 			Value int `json:"value"`
 		} `json:"vus_max"`
 		HTTPReqFailed struct {
-			Passes int `json:"passes"`
-			Fails  int `json:"fails"`
-			Value  int `json:"value"`
+			Passes int     `json:"passes"`
+			Fails  int     `json:"fails"`
+			Value  float64 `json:"value"`
 		} `json:"http_req_failed"`
 		Errors struct {
-			Fails  int `json:"fails"`
-			Passes int `json:"passes"`
-			Value  int `json:"value"`
+			Fails  int     `json:"fails"`
+			Passes int     `json:"passes"`
+			Value  float64 `json:"value"`
 		} `json:"errors"`
 		DataReceived struct {
 			Rate  float64 `json:"rate"`

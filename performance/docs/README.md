@@ -215,3 +215,6 @@ The following environment variables can be set to configure how the test will be
 
 Asier Cidon @RedHat
 
+## Contributors
+
+Fran Perea Rodríguez @RedHat

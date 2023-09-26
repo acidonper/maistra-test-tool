@@ -34,7 +34,7 @@ The idea behind this inititative is to generate a performance testing tool that 
 oc login -u [user] -p [token] --server=[OCP API server]
 ```
 
-* Update the environment variables 
+* Update the [environment variables](#test-cases-environment-variables) 
 * To run all the test cases
 
 ```$bash

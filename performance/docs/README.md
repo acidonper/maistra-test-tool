@@ -19,7 +19,7 @@ The idea behind this inititative is to generate a performance testing tool that 
 * RedHat Service Mesh Operator has been installed on the OpenShift cluster
 * Service Mesh Control Plane installed and ready 
 * Service Mesh Member Role ready with 1 configured member at least
-* By default, OSSM is installed with a integrated Prometheus instance configured. This tool supports [user-workload monitoring](https://docs.openshift.com/container-platform/4.13/monitoring/enabling-monitoring-for-user-defined-projects.html). For this, OSSM must be configured to use _user-workload monitoring_: [doc](https://docs.openshift.com/container-platform/4.13/service_mesh/v2x/ossm-observability.html#ossm-integrating-with-user-workload-monitoring_observability)
+* By default, OSSM is installed with an integrated Prometheus instance configured. This tool supports [user-workload monitoring](https://docs.openshift.com/container-platform/4.13/monitoring/enabling-monitoring-for-user-defined-projects.html). For this, OSSM must be configured to use _user-workload monitoring_: [doc](https://docs.openshift.com/container-platform/4.13/service_mesh/v2x/ossm-observability.html#ossm-integrating-with-user-workload-monitoring_observability)
 
 ## Testing Prerequisite
 

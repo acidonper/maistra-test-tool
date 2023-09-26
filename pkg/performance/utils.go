@@ -532,6 +532,15 @@ func obtainPrometheusOCPToken() (string, error) {
 	return token, nil
 }
 
+func obtainPrometheusUserWorkloadToken() (string, error) {
+	command := fmt.Sprintf(`oc get secret %s -n istio-system --template='{{ .data.token }}' | base64 -d`, userWorkloadsecret)
+	token, err := util.ShellSilent(command)
+	if err != nil {
+		return "", err
+	}
+	return token, nil
+}
+
 func getMetricPrometheus(host string, auth string, secret string, query string) (string, error) {
 	// Generate final URL
 	promUrl := "https://" + host + "/api/v1/query"
@@ -579,43 +588,54 @@ func getMetricPrometheus(host string, auth string, secret string, query string) 
 }
 
 func getMetricPrometheusMesh(query string) (string, error) {
-	// Retrieve Mesh Prometheus Host
-	routeHost, err := getRouteHost("prometheus", meshNamespace)
-	if err != nil {
-		return "", err
-	}
-
 	// Retrive respective query
 	prometheusQuery := prometheusMeshAPIMap[query]
 
-	// Obtain token to connect to Prometheus
-	pass, err := obtainPrometheusMeshToken()
-	if err != nil {
-		return "", err
-	}
+	// Retrieve Mesh Prometheus Host
+	var routeHost string
+	var err error
+	var pass string
+	var token string
+	var resp string
+	if userWorkloadEnabled == "enabled" {
+		routeHost, err = getRouteHost("thanos-querier", "openshift-monitoring")
+		if err != nil {
+			return "", err
+		}
 
-	// HTTP Post call to Prometheus
-	resp, err := getMetricPrometheus(routeHost, "user", pass, prometheusQuery)
-	if err != nil {
-		return "", err
+		token, err = obtainPrometheusUserWorkloadToken()
+		if err != nil {
+			return "", err
+		}
+
+		// HTTP Post call to Prometheus
+		resp, err = getMetricPrometheus(routeHost, "token", token, prometheusQuery)
+		if err != nil {
+			return "", err
+		}
+
+	} else {
+		routeHost, err = getRouteHost("prometheus", meshNamespace)
+		if err != nil {
+			return "", err
+		}
+
+		pass, err = obtainPrometheusMeshToken()
+		if err != nil {
+			return "", err
+		}
+
+		// HTTP Post call to Prometheus
+		resp, err = getMetricPrometheus(routeHost, "user", pass, prometheusQuery)
+		if err != nil {
+			return "", err
+		}
 	}
 
 	return resp, nil
 }
 
 func getMetricPrometheusOCP(query string, params map[string]string) (string, error) {
-	// Retrieve Mesh Prometheus Host
-	routeHost, err := getRouteHost("prometheus-k8s", "openshift-monitoring")
-	if err != nil {
-		return "", err
-	}
-
-	// Obtain token to connect to Prometheus
-	token, err := obtainPrometheusOCPToken()
-	if err != nil {
-		return "", err
-	}
-
 	// Retrive respective query
 	prometheusQuery := ""
 	if params != nil {
@@ -627,10 +647,43 @@ func getMetricPrometheusOCP(query string, params map[string]string) (string, err
 		prometheusQuery = prometheusAPIMap[query]
 	}
 
-	// HTTP Post call to Prometheus
-	resp, err := getMetricPrometheus(routeHost, "token", token, prometheusQuery)
-	if err != nil {
-		return "", err
+	// Retrieve Mesh Prometheus Host
+	var routeHost string
+	var err error
+	var token string
+	var resp string
+	if userWorkloadEnabled == "enabled" {
+		routeHost, err = getRouteHost("thanos-querier", "openshift-monitoring")
+		if err != nil {
+			return "", err
+		}
+
+		token, err = obtainPrometheusUserWorkloadToken()
+		if err != nil {
+			return "", err
+		}
+
+		resp, err = getMetricPrometheus(routeHost, "token", token, prometheusQuery)
+		if err != nil {
+			return "", err
+		}
+	} else {
+		routeHost, err = getRouteHost("prometheus-k8s", "openshift-monitoring")
+		if err != nil {
+			return "", err
+		}
+
+		// Obtain token to connect to Prometheus
+		token, err = obtainPrometheusOCPToken()
+		if err != nil {
+			return "", err
+		}
+
+		// HTTP Post call to Prometheus
+		resp, err = getMetricPrometheus(routeHost, "token", token, prometheusQuery)
+		if err != nil {
+			return "", err
+		}
 	}
 
 	return resp, nil
@@ -828,10 +881,16 @@ func compareP95(value1 string, value2 string) (string, error) {
 }
 
 func execK6SyncTest(vus string, duration string, url string, test string, file string) (string, error) {
-	util.Log.Info("Executing test ", test, " in ", url, " (vus/duration: ", vus, "/", duration, "s)")
-	command := fmt.Sprintf(`k6 run --vus %s --duration %ss --env TEST_URL="%s" --summary-export %s %s/k6/%s`, vus, duration, url, file, basedir, test)
+	var command string
+	if testWithStages == "false" {
+		util.Log.Info("Executing test ", test, " in ", url, " (vus/duration: ", vus, "/", duration, "s)")
+		command = fmt.Sprintf(`k6 run --vus %s --duration %ss --env TEST_URL="%s" --summary-export %s %s/k6/%s`, vus, duration, url, file, basedir, test)
+	} else {
+		util.Log.Info("Executing test with stages configured in the JS script file")
+		command = fmt.Sprintf(`k6 run --env TEST_URL="%s" --summary-export %s %s/k6/%s`, url, file, basedir, test)
+	}
 	util.Log.Debug("Launching command: " + command)
-	msg, err := util.ShellSilent(command)
+	msg, err := util.Shell(command)
 	if err != nil {
 		return "", err
 	}
@@ -849,9 +908,9 @@ func generateSimpleTrafficLoadK6(protocol string, app string) error {
 		if errRoute != nil {
 			return fmt.Errorf("route %s not found in namespace %s", appName, meshNamespace)
 		} else {
-			url = "http://" + routeHost + "/productpage"
+			url = "https://" + routeHost + "/productpage"
 		}
-		_, err = execK6SyncTest(testVUs, testDuration, url, "http-basic.js", reportFile)
+		_, err = execK6SyncTest(testVUs, testDuration, url, scriptFile, reportFile)
 
 		if err != nil {
 			return err

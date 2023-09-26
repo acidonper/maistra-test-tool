@@ -14,11 +14,12 @@ The idea behind this inititative is to generate a performance testing tool that 
 | oc client | 4.10.25+ |
 | k6        | v0.39.0+ |
 
-## Prerequisite
+## Prerequisites
 
 * RedHat Service Mesh Operator has been installed on the OpenShift cluster
 * Service Mesh Control Plane installed and ready 
 * Service Mesh Member Role ready with 1 configured member at least
+* By default, OSSM is installed with a integrated Prometheus instance configured. This tool supports [user-workload monitoring](https://docs.openshift.com/container-platform/4.13/monitoring/enabling-monitoring-for-user-defined-projects.html). For this, OSSM must be configured to use _user-workload monitoring_: [doc](https://docs.openshift.com/container-platform/4.13/service_mesh/v2x/ossm-observability.html#ossm-integrating-with-user-workload-monitoring_observability)
 
 ## Testing Prerequisite
 
@@ -33,6 +34,7 @@ The idea behind this inititative is to generate a performance testing tool that 
 oc login -u [user] -p [token] --server=[OCP API server]
 ```
 
+* Update the environment variables 
 * To run all the test cases
 
 ```$bash
@@ -174,6 +176,40 @@ Check if the k6 load test output (average request time in percentil 95 metric) i
 ### A9 - DeleteTestDPObjects
 
 Clean up the CreateTestDPObjects test objects deployed previously.
+
+## Test Cases: Environment variables
+The following environment variables can be set to configure how the test will be executed. These variables are stored in the [test.env](../tests/test.env) file.
+
+| Name                             | Value                                                         |
+| -----------                      | -----------                                                   |
+| MESHNAMESPACE                    | Istio Control Plane's namespace                               |
+| SMCPNAME                         | ServiceMeshControlPlane's name                                |
+| APPNSPREFIX                      | k8s-2                                                         |
+| GODEBUG                          | Go configuration                                              |
+| NSCOUNTBUNDLE                    | Number of namespaces added to the mesh                        |
+| NSACCEPTANCETIME                 | Time limit of adding a new namespace to the mesh              |
+| XDSPUSHACCEPTANCETIME            | Time in seconds of XDS pushes                                 |
+| ISTIODACCEPTANCEMEM              | Istiod's memory limit usage in Megabytes                      |
+| ISTIODACCEPTANCECPU              | Istiod's cpu limit usage in Milicores                         |
+| ISTIOINGRESSPROXIESACCEPTANCEMEM | Ingress Gateways's memory limit usage in Megabytes            |
+| ISTIOINGRESSPROXIESACCEPTANCECPU | Ingress Gateways's cpu limit usage in Milicores               |
+| ISTIOEGRESSPROXIESACCEPTANCEMEM  | Egress Gateways's memory limit usage in Megabytes             |
+| ISTIOEGRESSPROXIESACCEPTANCECPU  | Egress Gateways's cpu limit usage in Milicores                |
+| ISTIOPROXIESACCEPTANCEMEM        | Istio proxies's memory limit usage in Megabytes               |
+| ISTIOPROXIESDACCEPTANCECPU       | Istio proxies's cpu limit usage in Milicores                  |
+| TESTCPAPPS                       | Create a set of applications to prepare the Control Plane     |
+| TESTDPAPPS                       | Create a set of applications to prepare the Data Plane        |
+| TESTDPAPPSFILL                   | Create a set of applications until the cluster is 100% filled |
+| TESTVUS                          | K6: Number of virtual users                                   |
+| TESTDURATION                     | K6: Test duration                                             |
+| TESTWITHSTAGES                   | K6: Test execution with stages                                |
+| REQAVG95PACCEPTANCETIME          | K6 P95 Analysis                                               |
+| TRAFFICLOADAPP                   | App used in the test                                          |
+| TRAFFICLOADPROTOCOL              | Protocol used in the test                                     |
+| SCRIPTFILE                       | K6: Custom script used in the test                            |
+| USERWORKLOADMONITORING           | User-workload monitoring disabled/enabled                     |
+| USERWORKLOADNAMESPACE            | User-workload monitoring's namespace                          |
+| USERWORKLOADMONITORINGSECRET     | Thanos's secret                                               |
 
 ## Author
 

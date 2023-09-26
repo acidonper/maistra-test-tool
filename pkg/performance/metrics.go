@@ -42,8 +42,7 @@ func TestXDSPushes(t *testing.T) {
 
 func TestXDSErrors(t *testing.T) {
 	util.Log.Info("** TEST: TestXDSErrors")
-	// xds_reject_metrics := map[string]string{"xds_cdsrej": "Cluster Discovery Service", "xds_edsrej": "Endpoint Discovery Service", "xds_rdsrej": "Route Discovery Service", "xds_ldsrej": "Listener Discovery Service", "xds_write_timeouts": "Pilot XDS response write timeouts", "pilot_total_xds_internal_errors": "Internal XDS errors in pilot", "pilot_total_xds_rejects": ""}
-	xds_reject_metrics := map[string]string{"xds_cdsrej": "Cluster Discovery Service", "xds_edsrej": "Endpoint Discovery Service", "xds_rdsrej": "Route Discovery Service", "xds_ldsrej": "Listener Discovery Service"}
+	xds_reject_metrics := map[string]string{"xds_cdsrej": "Cluster Discovery Service", "xds_edsrej": "Endpoint Discovery Service", "xds_rdsrej": "Route Discovery Service", "xds_ldsrej": "Listener Discovery Service", "xds_write_timeouts": "Pilot XDS response write timeouts", "pilot_total_xds_internal_errors": "Internal XDS errors in pilot", "pilot_total_xds_rejects": ""}
 	for metric, usage := range xds_reject_metrics {
 		xdsError, err := getMetricPrometheusMesh(metric)
 		if err != nil {
